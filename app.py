@@ -70,6 +70,7 @@ ENV_FILES = {
 }
 
 RENDER_URL = "http://192.168.0.82:17494"
+_render_keepawake = False
 VIDEODL_URL = "http://192.168.0.30:8742"
 VIDEODL_ADMIN_PWD = "666"
 VOICEBOX_URL = "http://192.168.0.30:17493"
@@ -420,6 +421,37 @@ def api_stats_render():
 
     set_cache("stats_render", data)
     return jsonify(data)
+
+
+@app.route("/api/render/keepawake", methods=["GET"])
+@login_required
+def api_render_keepawake_status():
+    return jsonify({"enabled": _render_keepawake})
+
+
+@app.route("/api/render/keepawake", methods=["POST"])
+@login_required
+def api_render_keepawake_toggle():
+    global _render_keepawake
+    _render_keepawake = not _render_keepawake
+    if _render_keepawake:
+        try:
+            http_requests.post(f"{RENDER_URL}/system/keepawake", timeout=3)
+        except Exception:
+            pass
+    return jsonify({"enabled": _render_keepawake})
+
+
+@app.route("/api/render/keepawake/ping", methods=["POST"])
+@login_required
+def api_render_keepawake_ping():
+    if not _render_keepawake:
+        return jsonify({"enabled": False})
+    try:
+        http_requests.post(f"{RENDER_URL}/system/keepawake", timeout=3)
+    except Exception:
+        pass
+    return jsonify({"enabled": True})
 
 
 if __name__ == "__main__":
