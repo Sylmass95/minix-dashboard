@@ -171,6 +171,28 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/api/dashboard-version")
+@login_required
+def api_dashboard_version():
+    c = cached("dashboard_version", VERSION_TTL)
+    if c:
+        return jsonify(c)
+    try:
+        gh = http_requests.get(
+            "https://api.github.com/repos/Sylmass95/minix-dashboard/commits/main",
+            headers={"Accept": "application/vnd.github.v3+json"},
+            timeout=5
+        ).json()
+        data = {
+            "sha": gh["sha"][:7],
+            "date": gh["commit"]["committer"]["date"][:16].replace("T", " ")
+        }
+        set_cache("dashboard_version", data)
+        return jsonify(data)
+    except Exception:
+        return jsonify({"sha": None, "date": None})
+
+
 @app.route("/api/containers")
 @login_required
 def api_containers():
