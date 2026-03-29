@@ -158,7 +158,8 @@
     flex: 1; width: 100%; border: none; resize: none;
     background: var(--bg-panel); color: var(--text); padding: 1rem;
     font-family: "SF Mono","Fira Code",Consolas,monospace;
-    font-size: .82rem; line-height: 1.7; outline: none;
+    font-size: .85rem; line-height: 1.8; outline: none;
+    min-height: 400px;
   }
   .env-editor .env-tabs {
     display: flex; border-bottom: 1px solid var(--border);
@@ -196,7 +197,7 @@
     .card-mini-logs { font-size: .74rem; max-height: 120px; }
     .log-panel { width: 100%; max-width: 100%; max-height: 100vh; border-radius: 0; }
     .log-content { font-size: .75rem; }
-    .env-editor textarea { font-size: .78rem; min-height: 250px; }
+    .env-editor textarea { font-size: .78rem; min-height: 300px; }
     .section-title { margin: 1rem 0 .5rem; }
     footer { padding: .75rem 1rem; margin-top: 1rem; }
   }
@@ -241,7 +242,7 @@
 </div>
 
 <div class="env-overlay" id="envOverlay" onclick="if(event.target===this)closeEnv()">
-  <div class="log-panel" style="max-height:90vh">
+  <div class="log-panel" style="max-height:90vh;min-height:60vh;max-width:1000px">
     <div class="log-header">
       <h3 id="envTitle">.env</h3>
       <div class="header-btns">
