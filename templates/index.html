@@ -353,8 +353,7 @@ function renderStats(name) {
     }
     return `<div class="card-stats">
       <span class="stat-label">yt-dlp</span><span class="stat-value">${s.ytdlp_version||"?"}</span>
-      <span class="stat-label">Téléch. en cours</span><span class="stat-value">${s.downloads_active??"-"}</span>
-      <span class="stat-label">Total téléchargements</span><span class="stat-value">${s.total_downloads??"-"}</span>
+      <span class="stat-label">Téléchargements</span><span class="stat-value">${s.downloads_active??0} en cours / ${s.total_downloads??0} au total</span>
       <span class="stat-label">Dernières 24h / 7j</span><span class="stat-value">${s.last_24h??"-"} / ${s.last_7d??"-"}</span>
       <span class="stat-label">Utilisateurs connectés</span><span class="stat-value">${s.active_users??0}</span>
       <span class="stat-label">Dossier downloads</span><span class="stat-value">${s.downloads_size||"?"}</span>
