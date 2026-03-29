@@ -76,7 +76,7 @@
   .card {
     background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
     padding: 1.2rem; display: flex; flex-direction: column; gap: .6rem;
-    transition: border-color .2s, background .25s;
+    transition: border-color .2s, background .25s; height: 100%;
   }
   .card:hover { border-color: var(--border-hover); }
   .card.system { opacity: .6; }
@@ -92,7 +92,7 @@
   .card-status { font-size: .8rem; color: var(--text-muted); }
   .card-status .sha { font-family: "SF Mono","Fira Code",monospace; color: var(--sha); font-weight: 600; }
   .card-status .ver-date { color: var(--ver-date); }
-  .card-actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+  .card-actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-top: auto; }
   .card-actions .btn { font-size: .78rem; padding: .35rem .7rem; }
   .sleep-timer { font-size: .78rem; color: var(--text-muted); font-weight: 500; }
   .sleep-timer.paused { color: #f87171; }
@@ -114,7 +114,7 @@
   .engine-tag.inactive { background: var(--engine-inactive-bg); color: var(--engine-inactive-text); }
   .card-mini-logs {
     background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px;
-    padding: .5rem .7rem;
+    padding: .5rem .7rem; flex: 1;
     font-family: "SF Mono","Fira Code",Consolas,monospace;
     font-size: .72rem; line-height: 1.5;
     white-space: pre-wrap; word-break: break-all;
