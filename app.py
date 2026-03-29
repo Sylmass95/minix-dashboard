@@ -70,7 +70,6 @@ ENV_FILES = {
 }
 
 RENDER_URL = "http://192.168.0.82:17494"
-_render_keepawake = False
 VIDEODL_URL = "http://192.168.0.30:8742"
 VIDEODL_ADMIN_PWD = "666"
 VOICEBOX_URL = "http://192.168.0.30:17493"
@@ -405,6 +404,8 @@ def api_stats_render():
         data["vram_used"] = gpu.get("vram_used_gb", 0)
         data["engines_loaded"] = health.get("engines", {})
         data["supported_engines"] = health.get("supported_engines", [])
+        data["sleep_paused"] = health.get("sleep_paused", False)
+        data["sleep_remaining_min"] = health.get("sleep_remaining_min", -1)
         data["last_seen"] = time.strftime("%d/%m/%Y %H:%M:%S")
     except Exception:
         last = _cache.get("render_last_seen")
@@ -423,35 +424,14 @@ def api_stats_render():
     return jsonify(data)
 
 
-@app.route("/api/render/keepawake", methods=["GET"])
+@app.route("/api/render/sleep-pause", methods=["POST"])
 @login_required
-def api_render_keepawake_status():
-    return jsonify({"enabled": _render_keepawake})
-
-
-@app.route("/api/render/keepawake", methods=["POST"])
-@login_required
-def api_render_keepawake_toggle():
-    global _render_keepawake
-    _render_keepawake = not _render_keepawake
-    if _render_keepawake:
-        try:
-            http_requests.post(f"{RENDER_URL}/system/keepawake", timeout=3)
-        except Exception:
-            pass
-    return jsonify({"enabled": _render_keepawake})
-
-
-@app.route("/api/render/keepawake/ping", methods=["POST"])
-@login_required
-def api_render_keepawake_ping():
-    if not _render_keepawake:
-        return jsonify({"enabled": False})
+def api_render_sleep_pause():
     try:
-        http_requests.post(f"{RENDER_URL}/system/keepawake", timeout=3)
-    except Exception:
-        pass
-    return jsonify({"enabled": True})
+        r = http_requests.post(f"{RENDER_URL}/system/sleep-pause", timeout=5)
+        return jsonify(r.json())
+    except Exception as e:
+        return jsonify({"error": str(e)}), 502
 
 
 if __name__ == "__main__":

@@ -264,7 +264,6 @@ let refreshTimer;
 let envData = { name: "", files: [] };
 let envCurrentTab = 0;
 let statsCache = {};
-let keepAwake = false;
 
 function initTheme() {
   const saved = localStorage.getItem("dashboard-theme") || "dark";
@@ -386,8 +385,15 @@ function renderRenderCard() {
     gpuInfo = `<span class="stat-label">GPU</span><span class="stat-value">${s.gpu_name}</span>
       <span class="stat-label">VRAM</span><span class="stat-value">${s.vram_used||0} / ${s.vram_total||0} Go</span>`;
   }
-  const kaClass = keepAwake ? "btn-stop" : "btn-start";
-  const kaLabel = keepAwake ? "Veille bloquée" : "Bloquer veille";
+  const paused = !!s.sleep_paused;
+  const sleepRemain = s.sleep_remaining_min;
+  const pauseClass = paused ? "btn-stop" : "btn-start";
+  const pauseIcon = paused ? "⏸" : "▶";
+  const pauseLabel = paused ? "Veille en pause" : "Mettre en pause";
+  let sleepInfo = "";
+  if (s.online && sleepRemain != null && sleepRemain >= 0 && !paused) {
+    sleepInfo = `<span class="stat-label">Sleep dans</span><span class="stat-value">${sleepRemain} min</span>`;
+  }
   return `<div class="card" id="renderCard">
     <div class="card-header">
       <span class="card-name"><span class="dot ${dot}"></span>Sylmass95Render</span>
@@ -396,10 +402,11 @@ function renderRenderCard() {
     <div class="card-stats">
       <span class="stat-label">Hostname</span><span class="stat-value">${s.hostname||"-"}</span>
       ${gpuInfo}
+      ${sleepInfo}
       ${engines ? `<span class="stat-full" style="margin-top:.3rem">Engines : ${engines}</span>` : ""}
     </div>
     <div class="card-actions">
-      <button class="btn ${kaClass}" onclick="toggleKeepAwake(this)">${kaLabel}</button>
+      <button class="btn ${pauseClass}" onclick="toggleSleepPause(this)">${pauseIcon} ${pauseLabel}</button>
     </div>
   </div>`;
 }
@@ -468,18 +475,13 @@ async function loadContainers() {
 async function refresh() {
   await loadStats();
   await loadContainers();
-  if (keepAwake) {
-    fetch("/api/render/keepawake/ping", {method:"POST"}).catch(()=>{});
-  }
 }
 
-async function toggleKeepAwake(btn) {
+async function toggleSleepPause(btn) {
   btn.disabled = true;
   btn.innerHTML = `<span class="spinner"></span>`;
   try {
-    const res = await fetch("/api/render/keepawake", {method:"POST"});
-    const data = await res.json();
-    keepAwake = data.enabled;
+    await fetch("/api/render/sleep-pause", {method:"POST"});
   } catch(e) {}
   await loadStats();
   await loadContainers();
@@ -596,7 +598,6 @@ async function runUpdate() {
 }
 function closeUpdate() { document.getElementById("updateOverlay").classList.remove("open"); }
 
-fetch("/api/render/keepawake").then(r=>r.json()).then(d=>{keepAwake=d.enabled}).catch(()=>{});
 refresh();
 refreshTimer = setInterval(refresh, 10000);
 </script>
