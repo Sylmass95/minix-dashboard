@@ -412,7 +412,7 @@ function renderRenderCard() {
     <div class="card-header">
       <span class="card-name"><span class="dot ${dot}"></span>Sylmass95Render</span>
     </div>
-    <div class="card-status">${status} &middot; dernière vue : ${s.last_seen||"jamais"}${s.version ? ` &middot; <span class="sha">${s.version.sha}</span> <span class="ver-date">${gitDateFR(s.version.date)}</span>` : ""} ${sleepTag}</div>
+    <div class="card-status">${status} &middot; dernière vue : ${s.last_seen||"jamais"}${s.version && s.version.sha ? ` &middot; <span class="sha">${s.version.sha}</span> <span class="ver-date">${gitDateFR(s.version.date)}</span>` : ""} ${sleepTag}</div>
     <div class="card-stats">
       <span class="stat-label">Hostname</span><span class="stat-value">${s.hostname||"-"}</span>
       ${gpuInfo}
