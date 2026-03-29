@@ -1,6 +1,8 @@
 import os
 import time
 import secrets
+import socket
+import struct
 import requests as http_requests
 from flask import Flask, jsonify, render_template, request, session, redirect, url_for
 from functools import wraps
@@ -70,6 +72,7 @@ ENV_FILES = {
 }
 
 RENDER_URL = "http://192.168.0.82:17494"
+RENDER_MAC = "0c:9d:92:84:cc:c0"
 VIDEODL_URL = "http://192.168.0.30:8742"
 VIDEODL_ADMIN_PWD = "666"
 VOICEBOX_URL = "http://192.168.0.30:17493"
@@ -448,6 +451,21 @@ def api_render_sleep_pause():
         return jsonify(r.json())
     except Exception as e:
         return jsonify({"error": str(e)}), 502
+
+
+@app.route("/api/render/wol", methods=["POST"])
+@login_required
+def api_render_wol():
+    try:
+        mac_bytes = bytes.fromhex(RENDER_MAC.replace(":", ""))
+        magic = b'\xff' * 6 + mac_bytes * 16
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        sock.sendto(magic, ("255.255.255.255", 9))
+        sock.close()
+        return jsonify({"ok": True, "message": "Magic packet envoyé"})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 if __name__ == "__main__":

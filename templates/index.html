@@ -399,22 +399,25 @@ function renderRenderCard() {
       : `<span class="sleep-timer">💤 ${sleepRemain} min</span>`;
   }
   const miniLogs = s.mini_logs ? `<div class="card-mini-logs">${colorizeLogs(s.mini_logs)}</div>` : "";
+  const actions = [];
+  if (s.online) {
+    actions.push(`<button class="btn btn-logs" onclick="showRenderLogs()">Logs</button>`);
+    actions.push(`<button class="btn ${pauseClass}" onclick="toggleSleepPause(this)">${pauseIcon} ${pauseLabel}</button>`);
+  } else {
+    actions.push(`<button class="btn btn-start" onclick="wolRender(this)">Allumer (WOL)</button>`);
+  }
   return `<div class="card" id="renderCard">
     <div class="card-header">
       <span class="card-name"><span class="dot ${dot}"></span>Sylmass95Render</span>
     </div>
-    <div class="card-status">${status} &middot; dernière vue : ${s.last_seen||"jamais"}</div>
+    <div class="card-status">${status} &middot; dernière vue : ${s.last_seen||"jamais"} ${sleepTag}</div>
     <div class="card-stats">
       <span class="stat-label">Hostname</span><span class="stat-value">${s.hostname||"-"}</span>
       ${gpuInfo}
       ${engines ? `<span class="stat-full" style="margin-top:.3rem">Engines : ${engines}</span>` : ""}
     </div>
     ${miniLogs}
-    <div class="card-actions">
-      <button class="btn btn-link" onclick="showRenderLogs()">Logs</button>
-      <button class="btn ${pauseClass}" onclick="toggleSleepPause(this)">${pauseIcon} ${pauseLabel}</button>
-      ${sleepTag}
-    </div>
+    <div class="card-actions">${actions.join("")}</div>
   </div>`;
 }
 
@@ -492,6 +495,22 @@ async function toggleSleepPause(btn) {
   } catch(e) {}
   await loadStats();
   await loadContainers();
+}
+
+async function wolRender(btn) {
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span> Envoi...`;
+  try {
+    const res = await fetch("/api/render/wol", {method:"POST"});
+    const data = await res.json();
+    if (data.ok) {
+      btn.innerHTML = "Paquet envoyé !";
+      setTimeout(refresh, 5000);
+    } else {
+      btn.innerHTML = "Erreur";
+    }
+  } catch(e) { btn.innerHTML = "Erreur"; }
+  setTimeout(() => { btn.disabled = false; btn.innerHTML = "Allumer (WOL)"; }, 8000);
 }
 
 async function doAction(name, action, btn) {
