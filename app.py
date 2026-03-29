@@ -1,10 +1,18 @@
+import os
 import time
+import secrets
 import requests as http_requests
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, session, redirect, url_for
+from functools import wraps
 import docker
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(32))
 client = docker.from_env()
+
+DASHBOARD_PIN = os.environ.get("DASHBOARD_PIN", "1234")
+from datetime import timedelta
+app.permanent_session_lifetime = timedelta(days=30)
 
 _cache = {}
 CACHE_TTL = 30
@@ -126,12 +134,45 @@ def container_info(c):
     }
 
 
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("authenticated"):
+            if request.path.startswith("/api/"):
+                return jsonify({"error": "unauthorized"}), 401
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if session.get("authenticated"):
+        return redirect(url_for("index"))
+    error = None
+    if request.method == "POST":
+        if request.form.get("pin") == DASHBOARD_PIN:
+            session["authenticated"] = True
+            session.permanent = True
+            return redirect(url_for("index"))
+        error = "Code incorrect"
+    return render_template("login.html", error=error)
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
+
 @app.route("/")
+@login_required
 def index():
     return render_template("index.html")
 
 
 @app.route("/api/containers")
+@login_required
 def api_containers():
     containers = client.containers.list(all=True)
     result = [container_info(c) for c in containers if c.name not in HIDDEN]
@@ -141,6 +182,7 @@ def api_containers():
 
 
 @app.route("/api/containers/<name>/restart", methods=["POST"])
+@login_required
 def api_restart(name):
     try:
         c = client.containers.get(name)
@@ -151,6 +193,7 @@ def api_restart(name):
 
 
 @app.route("/api/containers/<name>/stop", methods=["POST"])
+@login_required
 def api_stop(name):
     try:
         c = client.containers.get(name)
@@ -161,6 +204,7 @@ def api_stop(name):
 
 
 @app.route("/api/containers/<name>/start", methods=["POST"])
+@login_required
 def api_start(name):
     try:
         c = client.containers.get(name)
@@ -171,6 +215,7 @@ def api_start(name):
 
 
 @app.route("/api/containers/<name>/logs")
+@login_required
 def api_logs(name):
     try:
         c = client.containers.get(name)
@@ -182,6 +227,7 @@ def api_logs(name):
 
 
 @app.route("/api/containers/<name>/env")
+@login_required
 def api_env_get(name):
     paths = ENV_FILES.get(name)
     if not paths:
@@ -200,6 +246,7 @@ def api_env_get(name):
 
 
 @app.route("/api/containers/<name>/env", methods=["POST"])
+@login_required
 def api_env_save(name):
     paths = ENV_FILES.get(name)
     if not paths:
@@ -220,6 +267,7 @@ def api_env_save(name):
 
 
 @app.route("/api/update", methods=["POST"])
+@login_required
 def api_update():
     try:
         updater = client.containers.get("docker-updater")
@@ -240,6 +288,7 @@ def api_update():
 # --- Stats routes ---
 
 @app.route("/api/stats/videodl")
+@login_required
 def api_stats_videodl():
     c = cached("stats_videodl")
     if c:
@@ -292,6 +341,7 @@ def api_stats_videodl():
 
 
 @app.route("/api/stats/voicebox")
+@login_required
 def api_stats_voicebox():
     c = cached("stats_voicebox")
     if c:
@@ -315,17 +365,20 @@ def api_stats_voicebox():
 
     try:
         vb = client.containers.get("voicebox")
-        r = vb.exec_run(["python3", "-c",
-            "import sqlite3; c=sqlite3.connect('/app/data/voicebox.db');"
-            "print(c.execute('SELECT COUNT(*) FROM users').fetchone()[0]);"
-            "print(c.execute('SELECT COUNT(*) FROM generations').fetchone()[0]);"
-            "print(c.execute('SELECT COUNT(*) FROM profiles').fetchone()[0]);"
-        ])
+        script = (
+            "import sqlite3\n"
+            "c=sqlite3.connect('/app/data/voicebox.db')\n"
+            "print(c.execute('SELECT COUNT(*) FROM users').fetchone()[0])\n"
+            "print(c.execute('SELECT COUNT(*) FROM generations').fetchone()[0])\n"
+            "print(c.execute(\"SELECT COUNT(DISTINCT user_id) FROM generations WHERE created_at > datetime('now','-1 day')\").fetchone()[0])\n"
+        )
+        r = vb.exec_run(["python3", "-c", script])
         lines = r.output.decode().strip().split("\n")
-        if len(lines) >= 3:
+        if len(lines) >= 2:
             data["users"] = int(lines[0])
             data["generations"] = int(lines[1])
-            data["profiles"] = int(lines[2])
+        if len(lines) >= 3:
+            data["active_users"] = int(lines[2])
     except Exception:
         pass
 
@@ -334,6 +387,7 @@ def api_stats_voicebox():
 
 
 @app.route("/api/stats/render")
+@login_required
 def api_stats_render():
     c = cached("stats_render", 15)
     if c:
