@@ -398,6 +398,7 @@ function renderRenderCard() {
       ? `<span class="sleep-timer paused">⏸ en pause</span>`
       : `<span class="sleep-timer">💤 ${sleepRemain} min</span>`;
   }
+  const miniLogs = s.mini_logs ? `<div class="card-mini-logs">${colorizeLogs(s.mini_logs)}</div>` : "";
   return `<div class="card" id="renderCard">
     <div class="card-header">
       <span class="card-name"><span class="dot ${dot}"></span>Sylmass95Render</span>
@@ -408,7 +409,9 @@ function renderRenderCard() {
       ${gpuInfo}
       ${engines ? `<span class="stat-full" style="margin-top:.3rem">Engines : ${engines}</span>` : ""}
     </div>
+    ${miniLogs}
     <div class="card-actions">
+      <button class="btn btn-link" onclick="showRenderLogs()">Logs</button>
       <button class="btn ${pauseClass}" onclick="toggleSleepPause(this)">${pauseIcon} ${pauseLabel}</button>
       ${sleepTag}
     </div>
@@ -511,6 +514,19 @@ async function showLogs(name, displayName) {
   } catch(e) { document.getElementById("logContent").textContent = "Erreur: " + e.message; }
 }
 function closeLogs() { document.getElementById("logOverlay").classList.remove("open"); }
+
+async function showRenderLogs() {
+  document.getElementById("logOverlay").classList.add("open");
+  document.getElementById("logTitle").textContent = "Logs — Sylmass95Render";
+  document.getElementById("logContent").innerHTML = "Chargement...";
+  try {
+    const res = await fetch("/api/render/logs");
+    const data = await res.json();
+    document.getElementById("logContent").innerHTML = data.ok ? colorizeLogs(data.logs) : escapeHtml(data.error);
+    const el = document.getElementById("logContent");
+    el.scrollTop = el.scrollHeight;
+  } catch(e) { document.getElementById("logContent").textContent = "Erreur: " + e.message; }
+}
 
 async function showEnv(name, displayName) {
   document.getElementById("envOverlay").classList.add("open");

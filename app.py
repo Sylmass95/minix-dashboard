@@ -420,8 +420,24 @@ def api_stats_render():
     except Exception:
         pass
 
+    try:
+        lr = http_requests.get(f"{RENDER_URL}/logs", params={"tail": 20}, timeout=3).json()
+        data["mini_logs"] = lr.get("logs", "")
+    except Exception:
+        data["mini_logs"] = ""
+
     set_cache("stats_render", data)
     return jsonify(data)
+
+
+@app.route("/api/render/logs")
+@login_required
+def api_render_logs():
+    try:
+        r = http_requests.get(f"{RENDER_URL}/logs", params={"tail": 150}, timeout=5).json()
+        return jsonify({"ok": True, "logs": r.get("logs", "")})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 502
 
 
 @app.route("/api/render/sleep-pause", methods=["POST"])
