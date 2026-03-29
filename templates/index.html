@@ -61,6 +61,8 @@
     background: var(--toggle-bg); color: var(--text); font-size: 1.1rem;
     width: 36px; height: 36px; padding: 0; display: flex;
     align-items: center; justify-content: center; border-radius: 50%;
+    -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+    cursor: pointer; user-select: none;
   }
   main { padding: 1.5rem 2rem; }
   .grid {
@@ -180,7 +182,9 @@
   }
   @media (max-width: 600px) {
     header { flex-direction: column; gap: .75rem; text-align: center; padding: 1rem; }
-    .header-actions { flex-wrap: wrap; justify-content: center; }
+    .header-actions { flex-wrap: nowrap; justify-content: center; gap: .5rem; }
+    .header-actions .btn { font-size: .75rem; padding: .4rem .7rem; white-space: nowrap; }
+    .btn-theme { width: 40px; height: 40px; font-size: 1.2rem; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
     main { padding: .75rem; }
     .grid { grid-template-columns: 1fr; }
     .card { padding: 1rem; }
