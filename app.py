@@ -453,6 +453,16 @@ def api_render_sleep_pause():
         return jsonify({"error": str(e)}), 502
 
 
+@app.route("/api/render/restart", methods=["POST"])
+@login_required
+def api_render_restart():
+    try:
+        r = http_requests.post(f"{RENDER_URL}/system/restart", timeout=5)
+        return jsonify(r.json())
+    except Exception:
+        return jsonify({"ok": True, "message": "Restart en cours..."})
+
+
 @app.route("/api/render/wol", methods=["POST"])
 @login_required
 def api_render_wol():

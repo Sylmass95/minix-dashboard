@@ -605,10 +605,8 @@ async function saveEnv() {
     const data = await res.json();
     if (data.ok) {
       btn.innerHTML = "Enregistré !";
-      if (envData.name !== "__render__") {
-        document.getElementById("envRestartBtn").style.display = "";
-        document.getElementById("envRestartBtn").setAttribute("data-name", envData.name);
-      }
+      document.getElementById("envRestartBtn").style.display = "";
+      document.getElementById("envRestartBtn").setAttribute("data-name", envData.name);
     } else {
       btn.innerHTML = "Erreur";
     }
@@ -621,9 +619,15 @@ async function restartFromEnv() {
   const btn = document.getElementById("envRestartBtn");
   btn.disabled = true;
   btn.innerHTML = `<span class="spinner"></span>`;
-  try { await fetch(`/api/containers/${name}/restart`, {method:"POST"}); } catch(e){}
+  try {
+    if (name === "__render__") {
+      await fetch("/api/render/restart", {method:"POST"});
+    } else {
+      await fetch(`/api/containers/${name}/restart`, {method:"POST"});
+    }
+  } catch(e){}
   btn.innerHTML = "Redémarré !";
-  setTimeout(() => { btn.style.display = "none"; btn.disabled = false; btn.innerHTML = "Restart"; }, 2000);
+  setTimeout(() => { btn.style.display = "none"; btn.disabled = false; btn.innerHTML = "Restart"; }, 3000);
 }
 
 async function showRenderEnv() {
