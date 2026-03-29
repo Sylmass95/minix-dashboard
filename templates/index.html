@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Minix Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #0f1117; color: #e1e4e8; min-height: 100vh;
+  }
+  header {
+    padding: 1.5rem 2rem; display: flex; align-items: center;
+    justify-content: space-between; border-bottom: 1px solid #21262d;
+  }
+  header h1 { font-size: 1.4rem; font-weight: 600; }
+  .header-actions { display: flex; gap: .75rem; align-items: center; }
+  .btn {
+    border: none; border-radius: 8px; padding: .5rem 1rem;
+    font-size: .85rem; font-weight: 500; cursor: pointer;
+    transition: opacity .15s; display: inline-flex; align-items: center; gap: .4rem;
+  }
+  .btn:hover { opacity: .85; }
+  .btn-update { background: #238636; color: #fff; }
+  .btn-portainer { background: #1f6feb; color: #fff; text-decoration: none; }
+  .btn-restart { background: #d29922; color: #fff; }
+  .btn-stop { background: #da3633; color: #fff; }
+  .btn-start { background: #238636; color: #fff; }
+  .btn-logs { background: #30363d; color: #e1e4e8; }
+  .btn-env { background: #30363d; color: #d2a8ff; }
+  .btn-link { background: #30363d; color: #58a6ff; text-decoration: none; }
+  .btn-save { background: #238636; color: #fff; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  main { padding: 1.5rem 2rem; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+    gap: 1rem;
+  }
+  .card {
+    background: #161b22; border: 1px solid #21262d; border-radius: 12px;
+    padding: 1.2rem; display: flex; flex-direction: column; gap: .6rem;
+    transition: border-color .2s;
+  }
+  .card:hover { border-color: #388bfd; }
+  .card.system { opacity: .6; }
+  .card-header { display: flex; align-items: center; justify-content: space-between; }
+  .card-name { font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; gap: .5rem; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+  .dot.running { background: #3fb950; box-shadow: 0 0 6px #3fb95088; }
+  .dot.online { background: #3fb950; box-shadow: 0 0 6px #3fb95088; }
+  .dot.exited, .dot.stopped, .dot.offline { background: #da3633; }
+  .dot.restarting { background: #d29922; animation: pulse 1s infinite; }
+  .dot.other { background: #8b949e; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .card-status { font-size: .8rem; color: #8b949e; }
+  .card-status .sha { font-family: "SF Mono","Fira Code",monospace; color: #d2a8ff; font-weight: 600; }
+  .card-status .ver-date { color: #7ee787; }
+  .card-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .card-actions .btn { font-size: .78rem; padding: .35rem .7rem; }
+  .card-stats {
+    background: #0d1117; border: 1px solid #1b2028; border-radius: 8px;
+    padding: .6rem .8rem; font-size: .78rem; line-height: 1.6;
+    display: grid; grid-template-columns: 1fr 1fr; gap: .2rem .8rem;
+  }
+  .card-stats .stat-label { color: #8b949e; }
+  .card-stats .stat-value { color: #e1e4e8; font-weight: 500; text-align: right; }
+  .card-stats .stat-full { grid-column: 1 / -1; }
+  .card-stats .stat-online { color: #3fb950; }
+  .card-stats .stat-offline { color: #da3633; }
+  .engine-tag {
+    display: inline-block; padding: .15rem .45rem; border-radius: 4px;
+    font-size: .7rem; margin: .1rem; font-family: "SF Mono","Fira Code",monospace;
+  }
+  .engine-tag.active { background: #238636; color: #fff; }
+  .engine-tag.inactive { background: #21262d; color: #8b949e; }
+  .card-mini-logs {
+    background: #0d1117; border: 1px solid #1b2028; border-radius: 8px;
+    padding: .5rem .7rem;
+    font-family: "SF Mono","Fira Code",Consolas,monospace;
+    font-size: .72rem; line-height: 1.5;
+    white-space: pre-wrap; word-break: break-all;
+    max-height: 150px; overflow-y: auto; color: #9ca3af;
+  }
+  .card-mini-logs .log-line { display: block; }
+  .card-mini-logs .log-error { color: #f87171; }
+  .card-mini-logs .log-warn { color: #fbbf24; }
+  .card-mini-logs .log-info { color: #60a5fa; }
+  .card-mini-logs .log-success { color: #34d399; }
+  .section-title {
+    font-size: .85rem; color: #8b949e; text-transform: uppercase;
+    letter-spacing: .08em; margin: 1.5rem 0 .75rem; font-weight: 600;
+  }
+  .log-overlay,.update-overlay,.env-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.7); z-index: 100;
+    justify-content: center; align-items: center;
+  }
+  .log-overlay.open,.update-overlay.open,.env-overlay.open { display: flex; }
+  .log-panel {
+    background: #0d1117; border: 1px solid #30363d;
+    border-radius: 12px; width: 90%; max-width: 900px;
+    max-height: 85vh; display: flex; flex-direction: column;
+  }
+  .log-header {
+    padding: 1rem 1.2rem; border-bottom: 1px solid #21262d;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .log-header h3 { font-size: 1rem; }
+  .log-header .header-btns { display: flex; gap: .5rem; align-items: center; }
+  .log-close { background: none; border: none; color: #8b949e; font-size: 1.4rem; cursor: pointer; }
+  .log-close:hover { color: #e1e4e8; }
+  .log-content {
+    padding: 1rem; overflow-y: auto; flex: 1;
+    font-family: "SF Mono","Fira Code",Consolas,monospace;
+    font-size: .78rem; line-height: 1.6;
+    white-space: pre-wrap; word-break: break-all; color: #c9d1d9;
+  }
+  .env-editor {
+    flex: 1; display: flex; flex-direction: column; overflow: hidden;
+  }
+  .env-editor textarea {
+    flex: 1; width: 100%; border: none; resize: none;
+    background: #0d1117; color: #e1e4e8; padding: 1rem;
+    font-family: "SF Mono","Fira Code",Consolas,monospace;
+    font-size: .82rem; line-height: 1.7; outline: none;
+  }
+  .env-editor .env-tabs {
+    display: flex; border-bottom: 1px solid #21262d;
+  }
+  .env-editor .env-tab {
+    padding: .5rem 1rem; cursor: pointer; font-size: .8rem;
+    color: #8b949e; border-bottom: 2px solid transparent;
+  }
+  .env-editor .env-tab.active { color: #58a6ff; border-bottom-color: #58a6ff; }
+  footer {
+    padding: 1rem 2rem; text-align: center; color: #484f58;
+    font-size: .78rem; border-top: 1px solid #21262d; margin-top: 2rem;
+  }
+  footer a { color: #58a6ff; text-decoration: none; }
+  .spinner { display: inline-block; width: 14px; height: 14px;
+    border: 2px solid transparent; border-top: 2px solid currentColor;
+    border-radius: 50%; animation: spin .6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (max-width: 600px) {
+    header { flex-direction: column; gap: .75rem; text-align: center; }
+    main { padding: 1rem; }
+    .grid { grid-template-columns: 1fr; }
+    .card-stats { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Minix Dashboard</h1>
+  <div class="header-actions">
+    <button class="btn btn-update" onclick="runUpdate()" id="updateBtn">Mise à jour apps</button>
+    <a class="btn btn-portainer" href="https://192.168.0.30:9443" target="_blank">Portainer</a>
+  </div>
+</header>
+<main>
+  <div class="section-title" id="servicesTitle" style="display:none">Services</div>
+  <div class="grid" id="services"></div>
+  <div class="section-title" id="homeTitle" style="display:none">Home</div>
+  <div class="grid" id="home"></div>
+  <div class="section-title" id="systemTitle" style="display:none">Système</div>
+  <div class="grid" id="system"></div>
+</main>
+
+<div class="log-overlay" id="logOverlay" onclick="if(event.target===this)closeLogs()">
+  <div class="log-panel">
+    <div class="log-header">
+      <h3 id="logTitle">Logs</h3>
+      <button class="log-close" onclick="closeLogs()">&times;</button>
+    </div>
+    <div class="log-content" id="logContent">Chargement...</div>
+  </div>
+</div>
+
+<div class="update-overlay" id="updateOverlay" onclick="if(event.target===this)closeUpdate()">
+  <div class="log-panel">
+    <div class="log-header">
+      <h3>Mise à jour</h3>
+      <button class="log-close" onclick="closeUpdate()">&times;</button>
+    </div>
+    <div class="log-content" id="updateContent"><span class="spinner"></span> Mise à jour en cours...</div>
+  </div>
+</div>
+
+<div class="env-overlay" id="envOverlay" onclick="if(event.target===this)closeEnv()">
+  <div class="log-panel" style="max-height:90vh">
+    <div class="log-header">
+      <h3 id="envTitle">.env</h3>
+      <div class="header-btns">
+        <button class="btn btn-save" id="envSaveBtn" onclick="saveEnv()">Enregistrer</button>
+        <button class="btn btn-restart" id="envRestartBtn" onclick="restartFromEnv()" style="display:none">Restart</button>
+        <button class="log-close" onclick="closeEnv()">&times;</button>
+      </div>
+    </div>
+    <div class="env-editor" id="envEditor">
+      <div class="env-tabs" id="envTabs"></div>
+      <textarea id="envTextarea" spellcheck="false"></textarea>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Auto-refresh 10s &middot; <a href="https://192.168.0.30:9443" target="_blank">Portainer (avancé)</a>
+</footer>
+
+<script>
+let refreshTimer;
+let envData = { name: "", files: [] };
+let envCurrentTab = 0;
+let statsCache = {};
+
+const MOIS = ["janv.","fév.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
+
+function escapeHtml(t) {
+  return t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+function colorizeLogs(raw) {
+  return raw.split("\n").map(line => {
+    const e = escapeHtml(line);
+    const l = line.toLowerCase();
+    if (/error|exception|traceback|fatal|panic/i.test(l)) return `<span class="log-line log-error">${e}</span>`;
+    if (/warn|warning/i.test(l)) return `<span class="log-line log-warn">${e}</span>`;
+    if (/info|notice/i.test(l)) return `<span class="log-line log-info">${e}</span>`;
+    if (/success|ok|ready|started|loaded|listening/i.test(l)) return `<span class="log-line log-success">${e}</span>`;
+    return `<span class="log-line">${e}</span>`;
+  }).join("\n");
+}
+
+function statusClass(s) {
+  if (s === "running") return "running";
+  if (s === "exited" || s === "dead") return "exited";
+  if (s === "restarting") return "restarting";
+  return "other";
+}
+
+function dateFR(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return `${d.getDate()} ${MOIS[d.getMonth()]} ${d.getFullYear()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+}
+
+function gitDateFR(str) {
+  if (!str) return "";
+  const parts = str.trim().split(/[-\s:]/);
+  if (parts.length < 5) return str;
+  const m = parseInt(parts[1], 10) - 1;
+  return `${parseInt(parts[2])} ${MOIS[m]} ${parts[0]} ${parts[3]}:${parts[4]}`;
+}
+
+function timeAgoFR(iso) {
+  if (!iso) return "";
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "à l'instant";
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ${m % 60}m`;
+  const j = Math.floor(h / 24);
+  return `${j}j ${h % 24}h`;
+}
+
+function renderStats(name) {
+  const s = statsCache[name];
+  if (!s) return "";
+  if (name === "web-video-downloader-1") {
+    let sites = "";
+    if (s.by_site && s.by_site.length) {
+      sites = s.by_site.map(x => `<span class="engine-tag active">${x.domain} (${x.count})</span>`).join("");
+      sites = `<span class="stat-full" style="margin-top:.3rem">Top sites : ${sites}</span>`;
+    }
+    return `<div class="card-stats">
+      <span class="stat-label">yt-dlp</span><span class="stat-value">${s.ytdlp_version||"?"}</span>
+      <span class="stat-label">Téléch. en cours</span><span class="stat-value">${s.downloads_active??"-"}</span>
+      <span class="stat-label">Total téléchargements</span><span class="stat-value">${s.total_downloads??"-"}</span>
+      <span class="stat-label">Dernières 24h / 7j</span><span class="stat-value">${s.last_24h??"-"} / ${s.last_7d??"-"}</span>
+      <span class="stat-label">Utilisateurs actifs</span><span class="stat-value">${s.active_users??0}</span>
+      <span class="stat-label">Dossier downloads</span><span class="stat-value">${s.downloads_size||"?"}</span>
+      <span class="stat-label">ffmpeg</span><span class="stat-value">${s.ffmpeg||"?"}</span>
+      <span class="stat-label">Node</span><span class="stat-value">${s.node||"?"}</span>
+      ${sites}
+    </div>`;
+  }
+  if (name === "voicebox") {
+    return `<div class="card-stats">
+      <span class="stat-label">Utilisateurs</span><span class="stat-value">${s.users??"-"}</span>
+      <span class="stat-label">Générations totales</span><span class="stat-value">${s.generations??"-"}</span>
+      <span class="stat-label">Profils voix</span><span class="stat-value">${s.profiles??"-"}</span>
+      <span class="stat-label">Rendus en cours</span><span class="stat-value">${s.active_generations??0}</span>
+      <span class="stat-label">Modèle</span><span class="stat-value">${s.model_size||"?"} (${s.backend_variant||"?"})</span>
+      <span class="stat-label">GPU</span><span class="stat-value">${s.gpu_available ? "Oui" : "Non (CPU)"}</span>
+    </div>`;
+  }
+  return "";
+}
+
+function renderRenderCard() {
+  const s = statsCache["render"];
+  if (!s) return "";
+  const dot = s.online ? "online" : "offline";
+  const status = s.online ? "En ligne" : "Éteint / Veille";
+  let engines = "";
+  if (s.supported_engines) {
+    const loaded = s.engines_loaded || {};
+    engines = s.supported_engines.map(e => {
+      const isActive = e in loaded;
+      return `<span class="engine-tag ${isActive?"active":"inactive"}">${e}</span>`;
+    }).join("");
+  }
+  let gpuInfo = "";
+  if (s.online && s.gpu_name) {
+    gpuInfo = `<span class="stat-label">GPU</span><span class="stat-value">${s.gpu_name}</span>
+      <span class="stat-label">VRAM</span><span class="stat-value">${s.vram_used||0} / ${s.vram_total||0} Go</span>`;
+  }
+  return `<div class="card" id="renderCard">
+    <div class="card-header">
+      <span class="card-name"><span class="dot ${dot}"></span>Sylmass95Render</span>
+    </div>
+    <div class="card-status">${status} &middot; dernière vue : ${s.last_seen||"jamais"}</div>
+    <div class="card-stats">
+      <span class="stat-label">Hostname</span><span class="stat-value">${s.hostname||"-"}</span>
+      ${gpuInfo}
+      ${engines ? `<span class="stat-full" style="margin-top:.3rem">Engines : ${engines}</span>` : ""}
+    </div>
+  </div>`;
+}
+
+function renderCard(c) {
+  const running = c.status === "running";
+  const actions = [];
+  if (c.url && running) actions.push(`<a class="btn btn-link" href="${c.url}" target="_blank">Ouvrir</a>`);
+  actions.push(`<button class="btn btn-logs" onclick="showLogs('${c.name}','${c.display_name}')">Logs</button>`);
+  if (c.has_env) actions.push(`<button class="btn btn-env" onclick="showEnv('${c.name}','${c.display_name}')">.env</button>`);
+  if (running) {
+    actions.push(`<button class="btn btn-restart" onclick="doAction('${c.name}','restart',this)">Restart</button>`);
+    actions.push(`<button class="btn btn-stop" onclick="doAction('${c.name}','stop',this)">Stop</button>`);
+  } else {
+    actions.push(`<button class="btn btn-start" onclick="doAction('${c.name}','start',this)">Start</button>`);
+  }
+  const ver = c.version
+    ? ` &middot; <span class="sha">${c.version.sha}</span> <span class="ver-date">${gitDateFR(c.version.date)}</span>`
+    : "";
+  const miniLogs = c.mini_logs ? `<div class="card-mini-logs">${colorizeLogs(c.mini_logs)}</div>` : "";
+  const stats = renderStats(c.name);
+  return `<div class="card${c.category==='system'?' system':''}">
+    <div class="card-header">
+      <span class="card-name"><span class="dot ${statusClass(c.status)}"></span>${c.display_name}</span>
+    </div>
+    <div class="card-status">${c.status}${c.health?' ('+c.health+')':''} &middot; up ${timeAgoFR(c.started_at)}${ver}</div>
+    ${stats}${miniLogs}
+    <div class="card-actions">${actions.join("")}</div>
+  </div>`;
+}
+
+async function loadStats() {
+  try {
+    const [vdl, vb, rnd] = await Promise.all([
+      fetch("/api/stats/videodl").then(r=>r.json()).catch(()=>({})),
+      fetch("/api/stats/voicebox").then(r=>r.json()).catch(()=>({})),
+      fetch("/api/stats/render").then(r=>r.json()).catch(()=>({})),
+    ]);
+    statsCache["web-video-downloader-1"] = vdl;
+    statsCache["voicebox"] = vb;
+    statsCache["render"] = rnd;
+  } catch(e) { console.error(e); }
+}
+
+async function loadContainers() {
+  try {
+    const res = await fetch("/api/containers");
+    const data = await res.json();
+    const home = data.filter(c => c.category === "home");
+    const services = data.filter(c => c.category === "services");
+    const system = data.filter(c => c.category === "system");
+
+    let servicesHtml = services.map(renderCard).join("");
+    servicesHtml += renderRenderCard();
+    document.getElementById("services").innerHTML = servicesHtml;
+    document.getElementById("servicesTitle").style.display = (services.length||statsCache["render"]) ? "" : "none";
+    document.getElementById("home").innerHTML = home.map(renderCard).join("");
+    document.getElementById("homeTitle").style.display = home.length ? "" : "none";
+    document.getElementById("system").innerHTML = system.map(renderCard).join("");
+    document.getElementById("systemTitle").style.display = system.length ? "" : "none";
+  } catch(e) { console.error(e); }
+}
+
+async function refresh() {
+  await loadStats();
+  await loadContainers();
+}
+
+async function doAction(name, action, btn) {
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span>`;
+  try { await fetch(`/api/containers/${name}/${action}`, {method:"POST"}); } catch(e){}
+  setTimeout(refresh, 1500);
+}
+
+async function showLogs(name, displayName) {
+  document.getElementById("logOverlay").classList.add("open");
+  document.getElementById("logTitle").textContent = "Logs — " + displayName;
+  document.getElementById("logContent").innerHTML = "Chargement...";
+  try {
+    const res = await fetch(`/api/containers/${name}/logs?tail=150`);
+    const data = await res.json();
+    document.getElementById("logContent").innerHTML = data.ok ? colorizeLogs(data.logs) : escapeHtml(data.error);
+    const el = document.getElementById("logContent");
+    el.scrollTop = el.scrollHeight;
+  } catch(e) { document.getElementById("logContent").textContent = "Erreur: " + e.message; }
+}
+function closeLogs() { document.getElementById("logOverlay").classList.remove("open"); }
+
+async function showEnv(name, displayName) {
+  document.getElementById("envOverlay").classList.add("open");
+  document.getElementById("envTitle").textContent = ".env — " + displayName;
+  document.getElementById("envTextarea").value = "Chargement...";
+  document.getElementById("envTabs").innerHTML = "";
+  document.getElementById("envRestartBtn").style.display = "none";
+  envData = { name, files: [] };
+  envCurrentTab = 0;
+  try {
+    const res = await fetch(`/api/containers/${name}/env`);
+    const data = await res.json();
+    if (data.ok) {
+      envData.files = data.files;
+      renderEnvTabs();
+    } else {
+      document.getElementById("envTextarea").value = data.error || "Erreur";
+    }
+  } catch(e) { document.getElementById("envTextarea").value = "Erreur: " + e.message; }
+}
+
+function renderEnvTabs() {
+  const tabs = document.getElementById("envTabs");
+  tabs.innerHTML = envData.files.map((f, i) =>
+    `<div class="env-tab${i===envCurrentTab?' active':''}" onclick="switchEnvTab(${i})">${f.name}</div>`
+  ).join("");
+  document.getElementById("envTextarea").value = envData.files[envCurrentTab]?.content || "";
+}
+
+function switchEnvTab(i) {
+  envData.files[envCurrentTab].content = document.getElementById("envTextarea").value;
+  envCurrentTab = i;
+  renderEnvTabs();
+}
+
+async function saveEnv() {
+  envData.files[envCurrentTab].content = document.getElementById("envTextarea").value;
+  const btn = document.getElementById("envSaveBtn");
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span>`;
+  try {
+    const res = await fetch(`/api/containers/${envData.name}/env`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ files: envData.files })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      btn.innerHTML = "Enregistré !";
+      document.getElementById("envRestartBtn").style.display = "";
+      document.getElementById("envRestartBtn").setAttribute("data-name", envData.name);
+    } else {
+      btn.innerHTML = "Erreur";
+    }
+  } catch(e) { btn.innerHTML = "Erreur"; }
+  setTimeout(() => { btn.disabled = false; btn.innerHTML = "Enregistrer"; }, 2000);
+}
+
+async function restartFromEnv() {
+  const name = document.getElementById("envRestartBtn").getAttribute("data-name");
+  const btn = document.getElementById("envRestartBtn");
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span>`;
+  try { await fetch(`/api/containers/${name}/restart`, {method:"POST"}); } catch(e){}
+  btn.innerHTML = "Redémarré !";
+  setTimeout(() => { btn.style.display = "none"; btn.disabled = false; btn.innerHTML = "Restart"; }, 2000);
+}
+
+function closeEnv() { document.getElementById("envOverlay").classList.remove("open"); }
+
+async function runUpdate() {
+  const btn = document.getElementById("updateBtn");
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span> En cours...`;
+  document.getElementById("updateOverlay").classList.add("open");
+  document.getElementById("updateContent").innerHTML = `<span class="spinner"></span> Mise à jour en cours, patience...`;
+  try {
+    const res = await fetch("/api/update", {method:"POST"});
+    const data = await res.json();
+    let txt = "";
+    if (data.stdout) txt += data.stdout;
+    if (data.stderr) txt += "\n" + data.stderr;
+    if (!txt.trim()) txt = data.ok ? "Terminé." : "Erreur.";
+    document.getElementById("updateContent").innerHTML = colorizeLogs(txt);
+  } catch(e) { document.getElementById("updateContent").textContent = "Erreur: " + e.message; }
+  btn.disabled = false;
+  btn.innerHTML = "Mise à jour apps";
+  setTimeout(refresh, 3000);
+}
+function closeUpdate() { document.getElementById("updateOverlay").classList.remove("open"); }
+
+refresh();
+refreshTimer = setInterval(refresh, 10000);
+</script>
+</body>
+</html>
