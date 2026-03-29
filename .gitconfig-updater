@@ -1,4 +1,0 @@
-[safe]
-	directory = *
-[credential]
-	helper = store --file=/home/sylvain/.git-credentials

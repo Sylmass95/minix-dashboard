@@ -426,6 +426,12 @@ def api_stats_render():
     except Exception:
         data["mini_logs"] = ""
 
+    try:
+        vr = http_requests.get(f"{RENDER_URL}/version", timeout=3).json()
+        data["version"] = {"sha": vr.get("sha"), "date": vr.get("date")}
+    except Exception:
+        data["version"] = None
+
     set_cache("stats_render", data)
     return jsonify(data)
 
