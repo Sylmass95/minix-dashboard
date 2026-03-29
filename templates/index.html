@@ -75,8 +75,9 @@
   }
   .card {
     background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
-    padding: 1.2rem; display: flex; flex-direction: column; gap: .6rem;
-    transition: border-color .2s, background .25s; height: 100%;
+    padding: 1.2rem; display: grid; grid-row: span 5;
+    grid-template-rows: subgrid; row-gap: .6rem;
+    transition: border-color .2s, background .25s;
   }
   .card:hover { border-color: var(--border-hover); }
   .card.system { opacity: .6; }
@@ -92,7 +93,7 @@
   .card-status { font-size: .8rem; color: var(--text-muted); }
   .card-status .sha { font-family: "SF Mono","Fira Code",monospace; color: var(--sha); font-weight: 600; }
   .card-status .ver-date { color: var(--ver-date); }
-  .card-actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-top: auto; }
+  .card-actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: flex-end; }
   .card-actions .btn { font-size: .78rem; padding: .35rem .7rem; }
   .sleep-timer { font-size: .78rem; color: var(--text-muted); font-weight: 500; }
   .sleep-timer.paused { color: #f87171; }
@@ -100,7 +101,6 @@
     background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px;
     padding: .6rem .8rem; font-size: .78rem; line-height: 1.6;
     display: grid; grid-template-columns: 1fr 1fr; gap: .2rem .8rem;
-    min-height: 8.5rem;
   }
   .card-stats .stat-label { color: var(--text-muted); }
   .card-stats .stat-value { color: var(--text); font-weight: 500; text-align: right; }
@@ -405,7 +405,7 @@ function renderRenderCard() {
       ? `<span class="sleep-timer paused">⏸ en pause</span>`
       : `<span class="sleep-timer">💤 ${sleepRemain} min</span>`;
   }
-  const miniLogs = s.mini_logs ? `<div class="card-mini-logs">${colorizeLogs(s.mini_logs)}</div>` : "";
+  const miniLogs = s.mini_logs ? `<div class="card-mini-logs">${colorizeLogs(s.mini_logs)}</div>` : `<div class="card-mini-logs"></div>`;
   const actions = [];
   if (s.online) {
     actions.push(`<button class="btn btn-logs" onclick="showRenderLogs()">Logs</button>`);
@@ -444,14 +444,15 @@ function renderCard(c) {
   const ver = c.version
     ? ` &middot; <span class="sha">${c.version.sha}</span> <span class="ver-date">${gitDateFR(c.version.date)}</span>`
     : "";
-  const miniLogs = c.mini_logs ? `<div class="card-mini-logs">${colorizeLogs(c.mini_logs)}</div>` : "";
-  const stats = renderStats(c.name);
+  const miniLogs = c.mini_logs ? `<div class="card-mini-logs">${colorizeLogs(c.mini_logs)}</div>` : `<div class="card-mini-logs"></div>`;
+  const stats = renderStats(c.name) || `<div class="card-stats"></div>`;
   return `<div class="card${c.category==='system'?' system':''}">
     <div class="card-header">
       <span class="card-name"><span class="dot ${statusClass(c.status)}"></span>${c.display_name}</span>
     </div>
     <div class="card-status">${c.status}${c.health?' ('+c.health+')':''} &middot; up ${timeAgoFR(c.started_at)}${ver}</div>
-    ${stats}${miniLogs}
+    ${stats}
+    ${miniLogs}
     <div class="card-actions">${actions.join("")}</div>
   </div>`;
 }
