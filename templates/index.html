@@ -402,6 +402,7 @@ function renderRenderCard() {
   const actions = [];
   if (s.online) {
     actions.push(`<button class="btn btn-logs" onclick="showRenderLogs()">Logs</button>`);
+    actions.push(`<button class="btn btn-env" onclick="showRenderEnv()">.env</button>`);
     actions.push(`<button class="btn ${pauseClass}" onclick="toggleSleepPause(this)">${pauseIcon} ${pauseLabel}</button>`);
   } else {
     actions.push(`<button class="btn btn-start" onclick="wolRender(this)">Allumer (WOL)</button>`);
@@ -587,16 +588,27 @@ async function saveEnv() {
   btn.disabled = true;
   btn.innerHTML = `<span class="spinner"></span>`;
   try {
-    const res = await fetch(`/api/containers/${envData.name}/env`, {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ files: envData.files })
-    });
+    let res;
+    if (envData.name === "__render__") {
+      res = await fetch("/api/render/env", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ content: envData.files[0].content })
+      });
+    } else {
+      res = await fetch(`/api/containers/${envData.name}/env`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ files: envData.files })
+      });
+    }
     const data = await res.json();
     if (data.ok) {
       btn.innerHTML = "Enregistré !";
-      document.getElementById("envRestartBtn").style.display = "";
-      document.getElementById("envRestartBtn").setAttribute("data-name", envData.name);
+      if (envData.name !== "__render__") {
+        document.getElementById("envRestartBtn").style.display = "";
+        document.getElementById("envRestartBtn").setAttribute("data-name", envData.name);
+      }
     } else {
       btn.innerHTML = "Erreur";
     }
@@ -612,6 +624,26 @@ async function restartFromEnv() {
   try { await fetch(`/api/containers/${name}/restart`, {method:"POST"}); } catch(e){}
   btn.innerHTML = "Redémarré !";
   setTimeout(() => { btn.style.display = "none"; btn.disabled = false; btn.innerHTML = "Restart"; }, 2000);
+}
+
+async function showRenderEnv() {
+  document.getElementById("envOverlay").classList.add("open");
+  document.getElementById("envTitle").textContent = ".env — Sylmass95Render";
+  document.getElementById("envTextarea").value = "Chargement...";
+  document.getElementById("envTabs").innerHTML = "";
+  document.getElementById("envRestartBtn").style.display = "none";
+  envData = { name: "__render__", files: [] };
+  envCurrentTab = 0;
+  try {
+    const res = await fetch("/api/render/env");
+    const data = await res.json();
+    if (data.ok) {
+      envData.files = data.files;
+      renderEnvTabs();
+    } else {
+      document.getElementById("envTextarea").value = data.error || "Erreur";
+    }
+  } catch(e) { document.getElementById("envTextarea").value = "Erreur: " + e.message; }
 }
 
 function closeEnv() { document.getElementById("envOverlay").classList.remove("open"); }

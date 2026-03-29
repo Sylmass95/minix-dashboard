@@ -468,5 +468,27 @@ def api_render_wol():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route("/api/render/env")
+@login_required
+def api_render_env_get():
+    try:
+        r = http_requests.get(f"{RENDER_URL}/system/env", timeout=5).json()
+        return jsonify({"ok": True, "files": [{"path": ".env", "content": r.get("content", "")}]})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 502
+
+
+@app.route("/api/render/env", methods=["POST"])
+@login_required
+def api_render_env_save():
+    data = request.get_json()
+    content = data.get("content", "")
+    try:
+        r = http_requests.post(f"{RENDER_URL}/system/env", json={"content": content}, timeout=5).json()
+        return jsonify(r)
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 502
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5555, threaded=True)
