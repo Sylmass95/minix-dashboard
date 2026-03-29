@@ -89,8 +89,10 @@
   .card-status { font-size: .8rem; color: var(--text-muted); }
   .card-status .sha { font-family: "SF Mono","Fira Code",monospace; color: var(--sha); font-weight: 600; }
   .card-status .ver-date { color: var(--ver-date); }
-  .card-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .card-actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
   .card-actions .btn { font-size: .78rem; padding: .35rem .7rem; }
+  .sleep-timer { font-size: .78rem; color: var(--text-muted); font-weight: 500; }
+  .sleep-timer.paused { color: #f87171; }
   .card-stats {
     background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px;
     padding: .6rem .8rem; font-size: .78rem; line-height: 1.6;
@@ -390,9 +392,11 @@ function renderRenderCard() {
   const pauseClass = paused ? "btn-stop" : "btn-start";
   const pauseIcon = paused ? "⏸" : "▶";
   const pauseLabel = paused ? "Veille en pause" : "Mettre en pause";
-  let sleepInfo = "";
-  if (s.online && sleepRemain != null && sleepRemain >= 0 && !paused) {
-    sleepInfo = `<span class="stat-label">Sleep dans</span><span class="stat-value">${sleepRemain} min</span>`;
+  let sleepTag = "";
+  if (s.online && sleepRemain != null && sleepRemain >= 0) {
+    sleepTag = paused
+      ? `<span class="sleep-timer paused">⏸ en pause</span>`
+      : `<span class="sleep-timer">💤 ${sleepRemain} min</span>`;
   }
   return `<div class="card" id="renderCard">
     <div class="card-header">
@@ -402,11 +406,11 @@ function renderRenderCard() {
     <div class="card-stats">
       <span class="stat-label">Hostname</span><span class="stat-value">${s.hostname||"-"}</span>
       ${gpuInfo}
-      ${sleepInfo}
       ${engines ? `<span class="stat-full" style="margin-top:.3rem">Engines : ${engines}</span>` : ""}
     </div>
     <div class="card-actions">
       <button class="btn ${pauseClass}" onclick="toggleSleepPause(this)">${pauseIcon} ${pauseLabel}</button>
+      ${sleepTag}
     </div>
   </div>`;
 }
