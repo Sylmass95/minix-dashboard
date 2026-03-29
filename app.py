@@ -449,17 +449,11 @@ def api_stats_render():
         data["mini_logs"] = ""
 
     try:
-        gh = http_requests.get(
-            "https://api.github.com/repos/Sylmass95/home-gpu-worker/commits/main",
-            headers={"Accept": "application/vnd.github.v3+json"},
-            timeout=5
-        ).json()
-        data["version"] = {
-            "sha": gh["sha"][:7],
-            "date": gh["commit"]["committer"]["date"][:16].replace("T", " ")
-        }
+        vr = http_requests.get(f"{RENDER_URL}/version", timeout=3).json()
+        if vr.get("sha"):
+            data["version"] = {"sha": vr["sha"], "date": vr.get("date")}
     except Exception:
-        data["version"] = None
+        pass
 
     set_cache("stats_render", data)
     return jsonify(data)
