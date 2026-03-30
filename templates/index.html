@@ -756,8 +756,13 @@ async function runUpdate() {
     if (data.stdout) txt += data.stdout;
     if (data.stderr) txt += "\n" + data.stderr;
     if (!txt.trim()) txt = data.ok ? "Terminé." : "Erreur.";
+    if (txt.includes("Dashboard") && txt.includes("rebuild")) txt += "\n\n⏳ Le dashboard redémarre, la page va se recharger...";
     document.getElementById("updateContent").innerHTML = colorizeLogs(txt);
-  } catch(e) { document.getElementById("updateContent").textContent = "Erreur: " + e.message; }
+    if (txt.includes("redémarre")) setTimeout(() => location.reload(), 15000);
+  } catch(e) {
+    document.getElementById("updateContent").textContent = "Le dashboard redémarre... Rechargement dans 10s.";
+    setTimeout(() => location.reload(), 10000);
+  }
   btn.disabled = false;
   btn.innerHTML = "Mise à jour apps";
   setTimeout(refresh, 3000);
