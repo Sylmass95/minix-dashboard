@@ -78,7 +78,7 @@ ENV_FILES = {
 
 RENDER_URL = "http://192.168.0.82:17494"
 VIDEODL_URL = "http://192.168.0.30:8742"
-VIDEODL_ADMIN_PWD = "666"
+VIDEODL_ENV = "/home/sylvain/Téléchargements/SOFT/VideoDL/web/.env"
 STORYBOARD_URL = "http://192.168.0.30:3232"
 STORYBOARD_ENV = "/home/sylvain/Téléchargements/SOFT/StoryboardGenerator/.env"
 VOICEBOX_URL = "http://192.168.0.30:17493"
@@ -385,22 +385,18 @@ def api_voicebox_admin_token():
 @login_required
 def api_videodl_admin_token():
     try:
-        site = http_requests.post(
-            f"{VIDEODL_URL}/api/site-auth",
-            json={"password": VIDEODL_ADMIN_PWD},
-            timeout=5
-        ).json()
-        user = http_requests.post(
+        admin_pwd = read_env_var(VIDEODL_ENV, "ADMIN_PASSWORD")
+        if not admin_pwd:
+            return jsonify({"ok": False, "error": "ADMIN_PASSWORD non trouvé dans .env"}), 500
+        r = http_requests.post(
             f"{VIDEODL_URL}/api/auth/login",
-            json={"username": "admin", "password": VIDEODL_ADMIN_PWD},
+            json={"username": "admin", "password": admin_pwd},
             timeout=5
-        ).json()
-        return jsonify({
-            "ok": True,
-            "site_token": site.get("token"),
-            "user_token": user.get("token"),
-            "user": user.get("user"),
-        })
+        )
+        if r.status_code != 200:
+            return jsonify({"ok": False, "error": f"Login échoué ({r.status_code})"}), 500
+        data = r.json()
+        return jsonify({"ok": True, "token": data.get("token"), "user": data.get("user")})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
@@ -446,17 +442,20 @@ def api_stats_videodl():
     data = {}
     try:
         session = http_requests.Session()
-        session.post(
-            f"{VIDEODL_URL}/api/site-auth",
-            json={"password": VIDEODL_ADMIN_PWD}, timeout=3
+        admin_pwd = read_env_var(VIDEODL_ENV, "ADMIN_PASSWORD") or ""
+        login_r = session.post(
+            f"{VIDEODL_URL}/api/auth/login",
+            json={"username": "admin", "password": admin_pwd}, timeout=3
         )
+        if login_r.status_code == 200:
+            jwt = login_r.json().get("token", "")
+            session.headers["Authorization"] = f"Bearer {jwt}"
 
         ver = session.get(f"{VIDEODL_URL}/api/version", timeout=3).json()
         data["ytdlp_version"] = ver.get("version", "?")
 
         debug = session.get(
             f"{VIDEODL_URL}/api/debug",
-            headers={"Authorization": f"Bearer {VIDEODL_ADMIN_PWD}"},
             timeout=3
         ).json()
         ffmpeg_raw = debug.get("ffmpeg", "?")
