@@ -564,11 +564,11 @@ async function openVideoDLAdmin(btn) {
   try {
     const r = await fetch("/api/videodl-admin-token");
     const data = await r.json();
-    if (data.ok && data.site_token) {
-      const auth = JSON.stringify({token: data.user_token, user: data.user});
-      const url = "https://videodl.duckdns.org/auto-login?token=" + encodeURIComponent(data.site_token) + "&auth=" + encodeURIComponent(auth) + "&redirect=/admin";
+    if (data.ok && data.token) {
+      const auth = JSON.stringify({token: data.token, user: data.user});
+      const url = "https://videodl.duckdns.org/auto-login?auth=" + encodeURIComponent(auth) + "&redirect=/admin";
       window.open(url, "_blank");
-    } else { alert("Erreur login admin"); }
+    } else { alert("Erreur login admin: " + (data.error || "")); }
   } catch(e) { alert("Erreur: " + e); }
   btn.disabled = false;
   btn.innerHTML = "Admin";
@@ -581,8 +581,8 @@ async function openStoryboardAdmin(btn) {
     const r = await fetch("/api/storyboard-admin-token");
     const data = await r.json();
     if (data.ok && data.token) {
-      window.open("http://192.168.0.30:3232/api/auth/auto-login?token=" + encodeURIComponent(data.token) + "&redirect=/admin.html", "_blank");
-    } else { alert("Erreur login admin"); }
+      window.open("http://storyboardgen.duckdns.org/api/auth/auto-login?token=" + encodeURIComponent(data.token) + "&redirect=/admin.html", "_blank");
+    } else { alert("Erreur login admin: " + (data.error || "")); }
   } catch(e) { alert("Erreur: " + e); }
   btn.disabled = false;
   btn.innerHTML = "Admin";
