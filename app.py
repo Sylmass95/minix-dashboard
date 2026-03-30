@@ -82,6 +82,7 @@ VIDEODL_ADMIN_PWD = "666"
 STORYBOARD_URL = "http://192.168.0.30:3232"
 STORYBOARD_ENV = "/home/sylvain/Téléchargements/SOFT/StoryboardGenerator/.env"
 VOICEBOX_URL = "http://192.168.0.30:17493"
+VOICEBOX_ENV = "/home/sylvain/Téléchargements/SOFT/Voicebox-fork/.env"
 DOWNLOADS_PATH = "/home/sylvain/Téléchargements/SOFT/VideoDL/web/downloads"
 
 
@@ -363,19 +364,19 @@ def api_toggle_auth():
 @login_required
 def api_voicebox_admin_token():
     try:
-        vb = client.containers.get("voicebox")
-        script = (
-            "from backend.services.auth import create_token\n"
-            "import sqlite3\n"
-            "c=sqlite3.connect('/app/data/voicebox.db')\n"
-            "r=c.execute(\"SELECT id, username FROM users WHERE is_admin=1 LIMIT 1\").fetchone()\n"
-            "if r: print(create_token(r[0], r[1]))\n"
+        admin_user = read_env_var(VOICEBOX_ENV, "VOICEBOX_ADMIN_USER") or "admin"
+        admin_pwd = read_env_var(VOICEBOX_ENV, "VOICEBOX_ADMIN_PASSWORD")
+        if not admin_pwd:
+            return jsonify({"ok": False, "error": "VOICEBOX_ADMIN_PASSWORD non trouvé dans .env"}), 500
+        r = http_requests.post(
+            f"{VOICEBOX_URL}/auth/login",
+            json={"username": admin_user, "password": admin_pwd},
+            timeout=5
         )
-        result = vb.exec_run(["python3", "-c", script])
-        token = result.output.decode().strip()
-        if token:
-            return jsonify({"ok": True, "token": token})
-        return jsonify({"ok": False, "error": "Pas d'admin trouvé"}), 404
+        if r.status_code != 200:
+            return jsonify({"ok": False, "error": f"Login échoué ({r.status_code})"}), 500
+        data = r.json()
+        return jsonify({"ok": True, "token": data.get("token"), "user": data.get("user")})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
