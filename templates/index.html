@@ -580,8 +580,7 @@ async function openStoryboardAdmin(btn) {
     const r = await fetch("/api/storyboard-admin-token");
     const data = await r.json();
     if (data.ok && data.token) {
-      const url = "http://192.168.0.30:3232/api/auth/auto-login?token=" + encodeURIComponent(data.token) + "&admin_code=" + encodeURIComponent(data.admin_code || "");
-      window.open(url, "_blank");
+      window.open("http://192.168.0.30:3232/api/auth/auto-login?token=" + encodeURIComponent(data.token) + "&redirect=/admin.html", "_blank");
     } else { alert("Erreur login admin"); }
   } catch(e) { alert("Erreur: " + e); }
   btn.disabled = false;
