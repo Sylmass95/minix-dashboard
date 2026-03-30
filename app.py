@@ -352,8 +352,8 @@ def api_toggle_auth():
 def api_videodl_admin_token():
     try:
         r = http_requests.post(
-            f"{VIDEODL_URL}/api/auth/login",
-            json={"username": "admin", "password": VIDEODL_ADMIN_PWD},
+            f"{VIDEODL_URL}/api/site-auth",
+            json={"password": VIDEODL_ADMIN_PWD},
             timeout=5
         ).json()
         return jsonify({"ok": True, "token": r.get("token")})
