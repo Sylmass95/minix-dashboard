@@ -157,6 +157,15 @@ def container_info(c):
     }
 
 
+_login_attempts = {}
+LOGIN_MAX_ATTEMPTS = 5
+LOGIN_BLOCK_SECONDS = 300
+
+
+def _get_client_ip():
+    return request.headers.get("X-Forwarded-For", request.remote_addr or "unknown").split(",")[0].strip()
+
+
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -173,12 +182,26 @@ def login():
     if session.get("authenticated"):
         return redirect(url_for("index"))
     error = None
+    ip = _get_client_ip()
+    entry = _login_attempts.get(ip, {"count": 0, "blocked_until": 0})
     if request.method == "POST":
-        if request.form.get("pin") == DASHBOARD_PIN:
+        if time.time() < entry.get("blocked_until", 0):
+            remaining = int(entry["blocked_until"] - time.time())
+            error = f"Trop de tentatives. Réessayez dans {remaining}s"
+        elif request.form.get("pin") == DASHBOARD_PIN:
+            _login_attempts.pop(ip, None)
             session["authenticated"] = True
             session.permanent = True
             return redirect(url_for("index"))
-        error = "Code incorrect"
+        else:
+            entry["count"] = entry.get("count", 0) + 1
+            if entry["count"] >= LOGIN_MAX_ATTEMPTS:
+                entry["blocked_until"] = time.time() + LOGIN_BLOCK_SECONDS
+                entry["count"] = 0
+                error = f"Trop de tentatives. Bloqué {LOGIN_BLOCK_SECONDS // 60} min"
+            else:
+                error = f"Code incorrect ({LOGIN_MAX_ATTEMPTS - entry['count']} essais restants)"
+            _login_attempts[ip] = entry
     return render_template("login.html", error=error)
 
 
