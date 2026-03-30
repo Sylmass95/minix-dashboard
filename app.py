@@ -80,10 +80,22 @@ RENDER_URL = "http://192.168.0.82:17494"
 VIDEODL_URL = "http://192.168.0.30:8742"
 VIDEODL_ADMIN_PWD = "666"
 STORYBOARD_URL = "http://192.168.0.30:3232"
-STORYBOARD_ADMIN_USER = "admin"
-STORYBOARD_ADMIN_PWD = "sapiens"
+STORYBOARD_ENV = "/home/sylvain/Téléchargements/SOFT/StoryboardGenerator/.env"
 VOICEBOX_URL = "http://192.168.0.30:17493"
 DOWNLOADS_PATH = "/home/sylvain/Téléchargements/SOFT/VideoDL/web/downloads"
+
+
+def read_env_var(env_path, var_name):
+    try:
+        updater = client.containers.get("docker-updater")
+        r = updater.exec_run(["sh", "-c", f"cat '{env_path}'"])
+        for line in r.output.decode().splitlines():
+            line = line.strip()
+            if line.startswith(f"{var_name}="):
+                return line.split("=", 1)[1].strip()
+    except Exception:
+        pass
+    return None
 
 
 def cached(key, ttl=CACHE_TTL):
@@ -396,20 +408,24 @@ def api_videodl_admin_token():
 @login_required
 def api_storyboard_admin_token():
     try:
+        admin_user = read_env_var(STORYBOARD_ENV, "ADMIN_USER") or "admin"
+        admin_pwd = read_env_var(STORYBOARD_ENV, "ADMIN_PASSWORD")
+        if not admin_pwd:
+            return jsonify({"ok": False, "error": "ADMIN_PASSWORD non trouvé dans .env"}), 500
         r = http_requests.post(
             f"{STORYBOARD_URL}/api/auth/login",
-            json={"username": STORYBOARD_ADMIN_USER, "password": STORYBOARD_ADMIN_PWD},
+            json={"username": admin_user, "password": admin_pwd},
             timeout=5
         )
         if r.status_code == 401:
             http_requests.post(
                 f"{STORYBOARD_URL}/api/auth/register",
-                json={"username": STORYBOARD_ADMIN_USER, "password": STORYBOARD_ADMIN_PWD},
+                json={"username": admin_user, "password": admin_pwd},
                 timeout=5
             )
             r = http_requests.post(
                 f"{STORYBOARD_URL}/api/auth/login",
-                json={"username": STORYBOARD_ADMIN_USER, "password": STORYBOARD_ADMIN_PWD},
+                json={"username": admin_user, "password": admin_pwd},
                 timeout=5
             )
         data = r.json()
