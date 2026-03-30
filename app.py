@@ -81,7 +81,7 @@ VIDEODL_URL = "http://192.168.0.30:8742"
 VIDEODL_ADMIN_PWD = "666"
 STORYBOARD_URL = "http://192.168.0.30:3232"
 STORYBOARD_ADMIN_USER = "admin"
-STORYBOARD_ADMIN_PWD = "admin2006"
+STORYBOARD_ADMIN_PWD = "sapiens"
 VOICEBOX_URL = "http://192.168.0.30:17493"
 DOWNLOADS_PATH = "/home/sylvain/Téléchargements/SOFT/VideoDL/web/downloads"
 
@@ -413,7 +413,7 @@ def api_storyboard_admin_token():
                 timeout=5
             )
         data = r.json()
-        return jsonify({"ok": True, "token": data.get("token"), "admin_code": "sapiensadmin"})
+        return jsonify({"ok": True, "token": data.get("token")})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
