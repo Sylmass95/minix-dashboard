@@ -435,6 +435,12 @@ function renderCard(c) {
   if (c.url && running) actions.push(`<a class="btn btn-link" href="${c.url}" target="_blank">Ouvrir</a>`);
   actions.push(`<button class="btn btn-logs" onclick="showLogs('${c.name}','${c.display_name}')">Logs</button>`);
   if (c.has_env) actions.push(`<button class="btn btn-env" onclick="showEnv('${c.name}','${c.display_name}')">.env</button>`);
+  if (c.name === "web-video-downloader-1" && running) {
+    actions.push(`<a class="btn btn-link" href="https://videodl.duckdns.org" target="_blank">Admin</a>`);
+    const s = statsCache["web-video-downloader-1"];
+    const authOn = s && s.auth_mode === "accounts";
+    actions.push(`<button class="btn ${authOn ? "btn-start" : "btn-stop"}" onclick="toggleVideoDLAuth(this)">${authOn ? "Accounts ON" : "Accounts OFF"}</button>`);
+  }
   if (running) {
     actions.push(`<button class="btn btn-restart" onclick="doAction('${c.name}','restart',this)">Restart</button>`);
     actions.push(`<button class="btn btn-stop" onclick="doAction('${c.name}','stop',this)">Stop</button>`);
@@ -520,6 +526,22 @@ async function wolRender(btn) {
     }
   } catch(e) { btn.innerHTML = "Erreur"; }
   setTimeout(() => { btn.disabled = false; btn.innerHTML = "Allumer (WOL)"; }, 8000);
+}
+
+async function toggleVideoDLAuth(btn) {
+  btn.disabled = true;
+  const old = btn.innerHTML;
+  btn.innerHTML = `<span class="spinner"></span>`;
+  try {
+    const r = await fetch("/api/containers/web-video-downloader-1/toggle-auth", {method:"POST"});
+    const data = await r.json();
+    if (data.ok) {
+      btn.innerHTML = data.auth_mode === "accounts" ? "Accounts ON" : "Accounts OFF";
+      btn.className = "btn " + (data.auth_mode === "accounts" ? "btn-start" : "btn-stop");
+      setTimeout(refresh, 3000);
+    } else { btn.innerHTML = "Erreur"; }
+  } catch(e) { btn.innerHTML = "Erreur"; }
+  setTimeout(() => { btn.disabled = false; }, 3000);
 }
 
 async function doAction(name, action, btn) {

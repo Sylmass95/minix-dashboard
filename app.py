@@ -307,6 +307,36 @@ def api_update():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route("/api/containers/web-video-downloader-1/toggle-auth", methods=["POST"])
+@login_required
+def api_toggle_auth():
+    try:
+        updater = client.containers.get("docker-updater")
+        env_path = ENV_FILES["web-video-downloader-1"][0]
+        r = updater.exec_run(["sh", "-c", f"cat '{env_path}'"])
+        content = r.output.decode("utf-8", errors="replace")
+        lines = content.splitlines()
+        new_mode = "password"
+        new_lines = []
+        for line in lines:
+            if line.startswith("AUTH_MODE="):
+                old_mode = line.split("=", 1)[1].strip()
+                new_mode = "password" if old_mode == "accounts" else "accounts"
+                new_lines.append(f"AUTH_MODE={new_mode}")
+            else:
+                new_lines.append(line)
+        new_content = "\n".join(new_lines) + "\n"
+        import base64 as b64mod
+        encoded = b64mod.b64encode(new_content.encode()).decode()
+        updater.exec_run(["sh", "-c", f"echo '{encoded}' | base64 -d > '{env_path}'"])
+        container = client.containers.get("web-video-downloader-1")
+        container.restart(timeout=10)
+        _cache.pop("stats_videodl", None)
+        return jsonify({"ok": True, "auth_mode": new_mode})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 # --- Stats routes ---
 
 @app.route("/api/stats/videodl")
@@ -357,6 +387,17 @@ def api_stats_videodl():
         data["downloads_size"] = r.output.decode().split("\t")[0].strip()
     except Exception:
         data["downloads_size"] = "?"
+
+    try:
+        updater = client.containers.get("docker-updater")
+        env_path = ENV_FILES["web-video-downloader-1"][0]
+        r = updater.exec_run(["sh", "-c", f"cat '{env_path}'"])
+        for line in r.output.decode().splitlines():
+            if line.startswith("AUTH_MODE="):
+                data["auth_mode"] = line.split("=", 1)[1].strip()
+                break
+    except Exception:
+        pass
 
     set_cache("stats_videodl", data)
     return jsonify(data)
