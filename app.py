@@ -79,6 +79,9 @@ ENV_FILES = {
 RENDER_URL = "http://192.168.0.82:17494"
 VIDEODL_URL = "http://192.168.0.30:8742"
 VIDEODL_ADMIN_PWD = "666"
+STORYBOARD_URL = "http://192.168.0.30:3232"
+STORYBOARD_ADMIN_USER = "admin"
+STORYBOARD_ADMIN_PWD = "admin2006"
 VOICEBOX_URL = "http://192.168.0.30:17493"
 DOWNLOADS_PATH = "/home/sylvain/Téléchargements/SOFT/VideoDL/web/downloads"
 
@@ -358,6 +361,32 @@ def api_videodl_admin_token():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route("/api/storyboard-admin-token")
+@login_required
+def api_storyboard_admin_token():
+    try:
+        r = http_requests.post(
+            f"{STORYBOARD_URL}/api/auth/login",
+            json={"username": STORYBOARD_ADMIN_USER, "password": STORYBOARD_ADMIN_PWD},
+            timeout=5
+        )
+        if r.status_code == 401:
+            http_requests.post(
+                f"{STORYBOARD_URL}/api/auth/register",
+                json={"username": STORYBOARD_ADMIN_USER, "password": STORYBOARD_ADMIN_PWD},
+                timeout=5
+            )
+            r = http_requests.post(
+                f"{STORYBOARD_URL}/api/auth/login",
+                json={"username": STORYBOARD_ADMIN_USER, "password": STORYBOARD_ADMIN_PWD},
+                timeout=5
+            )
+        data = r.json()
+        return jsonify({"ok": True, "token": data.get("token"), "admin_code": "sapiensadmin"})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 # --- Stats routes ---
 
 @app.route("/api/stats/videodl")
@@ -467,6 +496,34 @@ def api_stats_voicebox():
         pass
 
     set_cache("stats_voicebox", data)
+    return jsonify(data)
+
+
+@app.route("/api/stats/storyboard")
+@login_required
+def api_stats_storyboard():
+    c = cached("stats_storyboard")
+    if c:
+        return jsonify(c)
+    data = {}
+    try:
+        sb = client.containers.get("storyboardgenerator-app-1")
+        script = (
+            "import sqlite3\n"
+            "c=sqlite3.connect('/app/data/app.db')\n"
+            "print(c.execute('SELECT COUNT(*) FROM users').fetchone()[0])\n"
+            "print(c.execute('SELECT COUNT(*) FROM projects').fetchone()[0])\n"
+            "print(c.execute(\"SELECT COUNT(DISTINCT user_id) FROM projects WHERE created_at > datetime('now','-1 day')\").fetchone()[0])\n"
+        )
+        r = sb.exec_run(["python3", "-c", script])
+        lines = r.output.decode().strip().split("\n")
+        if len(lines) >= 3:
+            data["users"] = int(lines[0])
+            data["projects"] = int(lines[1])
+            data["active_users"] = int(lines[2])
+    except Exception:
+        pass
+    set_cache("stats_storyboard", data)
     return jsonify(data)
 
 

@@ -372,6 +372,13 @@ function renderStats(name) {
       <span class="stat-label">Rendu sur</span><span class="stat-value">${device} (${machine}) — ${s.model_size||"?"}</span>
     </div>`;
   }
+  if (name === "storyboardgenerator-app-1") {
+    const userStr = s.active_users != null ? `${s.active_users} actif(s) / ${s.users??0} total` : `${s.users??0} total`;
+    return `<div class="card-stats">
+      <span class="stat-label">Utilisateurs</span><span class="stat-value">${userStr}</span>
+      <span class="stat-label">Projets</span><span class="stat-value">${s.projects??0}</span>
+    </div>`;
+  }
   return "";
 }
 
@@ -441,6 +448,9 @@ function renderCard(c) {
     const authOn = s && s.auth_mode === "accounts";
     actions.push(`<button class="btn ${authOn ? "btn-start" : "btn-stop"}" onclick="toggleVideoDLAuth(this)">${authOn ? "Accounts ON" : "Accounts OFF"}</button>`);
   }
+  if (c.name === "storyboardgenerator-app-1" && running) {
+    actions.push(`<button class="btn btn-link" onclick="openStoryboardAdmin(this)">Admin</button>`);
+  }
   if (running) {
     actions.push(`<button class="btn btn-restart" onclick="doAction('${c.name}','restart',this)">Restart</button>`);
     actions.push(`<button class="btn btn-stop" onclick="doAction('${c.name}','stop',this)">Stop</button>`);
@@ -465,14 +475,16 @@ function renderCard(c) {
 
 async function loadStats() {
   try {
-    const [vdl, vb, rnd] = await Promise.all([
+    const [vdl, vb, rnd, sb] = await Promise.all([
       fetch("/api/stats/videodl").then(r=>r.json()).catch(()=>({})),
       fetch("/api/stats/voicebox").then(r=>r.json()).catch(()=>({})),
       fetch("/api/stats/render").then(r=>r.json()).catch(()=>({})),
+      fetch("/api/stats/storyboard").then(r=>r.json()).catch(()=>({})),
     ]);
     statsCache["web-video-downloader-1"] = vdl;
     statsCache["voicebox"] = vb;
     statsCache["render"] = rnd;
+    statsCache["storyboardgenerator-app-1"] = sb;
   } catch(e) { console.error(e); }
 }
 
@@ -536,6 +548,21 @@ async function openVideoDLAdmin(btn) {
     const data = await r.json();
     if (data.ok && data.token) {
       window.open("https://videodl.duckdns.org/auto-login?token=" + encodeURIComponent(data.token), "_blank");
+    } else { alert("Erreur login admin"); }
+  } catch(e) { alert("Erreur: " + e); }
+  btn.disabled = false;
+  btn.innerHTML = "Admin";
+}
+
+async function openStoryboardAdmin(btn) {
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span>`;
+  try {
+    const r = await fetch("/api/storyboard-admin-token");
+    const data = await r.json();
+    if (data.ok && data.token) {
+      const url = "http://192.168.0.30:3232/api/auth/auto-login?token=" + encodeURIComponent(data.token) + "&admin_code=" + encodeURIComponent(data.admin_code || "");
+      window.open(url, "_blank");
     } else { alert("Erreur login admin"); }
   } catch(e) { alert("Erreur: " + e); }
   btn.disabled = false;
