@@ -563,8 +563,10 @@ async function openVideoDLAdmin(btn) {
   try {
     const r = await fetch("/api/videodl-admin-token");
     const data = await r.json();
-    if (data.ok && data.token) {
-      window.open("https://videodl.duckdns.org/auto-login?token=" + encodeURIComponent(data.token) + "&redirect=/admin", "_blank");
+    if (data.ok && data.site_token) {
+      const auth = JSON.stringify({token: data.user_token, user: data.user});
+      const url = "https://videodl.duckdns.org/auto-login?token=" + encodeURIComponent(data.site_token) + "&auth=" + encodeURIComponent(auth) + "&redirect=/admin";
+      window.open(url, "_blank");
     } else { alert("Erreur login admin"); }
   } catch(e) { alert("Erreur: " + e); }
   btn.disabled = false;

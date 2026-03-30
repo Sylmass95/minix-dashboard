@@ -372,12 +372,22 @@ def api_voicebox_admin_token():
 @login_required
 def api_videodl_admin_token():
     try:
-        r = http_requests.post(
+        site = http_requests.post(
+            f"{VIDEODL_URL}/api/site-auth",
+            json={"password": VIDEODL_ADMIN_PWD},
+            timeout=5
+        ).json()
+        user = http_requests.post(
             f"{VIDEODL_URL}/api/auth/login",
             json={"username": "admin", "password": VIDEODL_ADMIN_PWD},
             timeout=5
         ).json()
-        return jsonify({"ok": True, "token": r.get("token")})
+        return jsonify({
+            "ok": True,
+            "site_token": site.get("token"),
+            "user_token": user.get("token"),
+            "user": user.get("user"),
+        })
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
