@@ -347,6 +347,27 @@ def api_toggle_auth():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route("/api/voicebox-admin-token")
+@login_required
+def api_voicebox_admin_token():
+    try:
+        vb = client.containers.get("voicebox")
+        script = (
+            "from backend.services.auth import create_token\n"
+            "import sqlite3\n"
+            "c=sqlite3.connect('/app/data/voicebox.db')\n"
+            "r=c.execute(\"SELECT id, username FROM users WHERE is_admin=1 LIMIT 1\").fetchone()\n"
+            "if r: print(create_token(r[0], r[1]))\n"
+        )
+        result = vb.exec_run(["python3", "-c", script])
+        token = result.output.decode().strip()
+        if token:
+            return jsonify({"ok": True, "token": token})
+        return jsonify({"ok": False, "error": "Pas d'admin trouvé"}), 404
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route("/api/videodl-admin-token")
 @login_required
 def api_videodl_admin_token():

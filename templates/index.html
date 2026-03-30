@@ -442,6 +442,9 @@ function renderCard(c) {
   if (c.url && running) actions.push(`<a class="btn btn-link" href="${c.url}" target="_blank">Ouvrir</a>`);
   actions.push(`<button class="btn btn-logs" onclick="showLogs('${c.name}','${c.display_name}')">Logs</button>`);
   if (c.has_env) actions.push(`<button class="btn btn-env" onclick="showEnv('${c.name}','${c.display_name}')">.env</button>`);
+  if (c.name === "voicebox" && running) {
+    actions.push(`<button class="btn btn-link" onclick="openVoiceboxAdmin(this)">Admin</button>`);
+  }
   if (c.name === "web-video-downloader-1" && running) {
     actions.push(`<button class="btn btn-link" onclick="openVideoDLAdmin(this)">Admin</button>`);
     const s = statsCache["web-video-downloader-1"];
@@ -538,6 +541,20 @@ async function wolRender(btn) {
     }
   } catch(e) { btn.innerHTML = "Erreur"; }
   setTimeout(() => { btn.disabled = false; btn.innerHTML = "Allumer (WOL)"; }, 8000);
+}
+
+async function openVoiceboxAdmin(btn) {
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span>`;
+  try {
+    const r = await fetch("/api/voicebox-admin-token");
+    const data = await r.json();
+    if (data.ok && data.token) {
+      window.open("http://192.168.0.30:17493/auth/auto-login?token=" + encodeURIComponent(data.token), "_blank");
+    } else { alert("Erreur login admin"); }
+  } catch(e) { alert("Erreur: " + e); }
+  btn.disabled = false;
+  btn.innerHTML = "Admin";
 }
 
 async function openVideoDLAdmin(btn) {
