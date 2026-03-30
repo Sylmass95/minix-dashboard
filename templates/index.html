@@ -550,8 +550,9 @@ async function openVoiceboxAdmin(btn) {
     const r = await fetch("/api/voicebox-admin-token");
     const data = await r.json();
     if (data.ok && data.token) {
-      window.open("http://192.168.0.30:17493/auth/auto-login?token=" + encodeURIComponent(data.token), "_blank");
-    } else { alert("Erreur login admin"); }
+      const url = "http://192.168.0.30:17493/auth/auto-login?token=" + encodeURIComponent(data.token) + "&user=" + encodeURIComponent(JSON.stringify(data.user)) + "&redirect=/admin";
+      window.open(url, "_blank");
+    } else { alert("Erreur login admin: " + (data.error || "")); }
   } catch(e) { alert("Erreur: " + e); }
   btn.disabled = false;
   btn.innerHTML = "Admin";
