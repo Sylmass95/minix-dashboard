@@ -337,6 +337,20 @@ def api_toggle_auth():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route("/api/videodl-admin-token")
+@login_required
+def api_videodl_admin_token():
+    try:
+        r = http_requests.post(
+            f"{VIDEODL_URL}/api/auth/login",
+            json={"username": "admin", "password": VIDEODL_ADMIN_PWD},
+            timeout=5
+        ).json()
+        return jsonify({"ok": True, "token": r.get("token")})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 # --- Stats routes ---
 
 @app.route("/api/stats/videodl")
