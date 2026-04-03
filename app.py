@@ -495,6 +495,40 @@ def api_annoncesgen_admin_token():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route("/api/containers/annoncesgen-backend-1/toggle-auth", methods=["POST"])
+@login_required
+def api_toggle_annoncesgen_auth():
+    try:
+        updater = client.containers.get("docker-updater")
+        env_path = ENV_FILES["annoncesgen-backend-1"][0]
+        r = updater.exec_run(["sh", "-c", f"cat '{env_path}'"])
+        content = r.output.decode("utf-8", errors="replace")
+        lines = content.splitlines()
+        new_mode = "password"
+        found = False
+        new_lines = []
+        for line in lines:
+            if line.startswith("AUTH_MODE="):
+                old_mode = line.split("=", 1)[1].strip()
+                new_mode = "password" if old_mode == "accounts" else "accounts"
+                new_lines.append(f"AUTH_MODE={new_mode}")
+                found = True
+            else:
+                new_lines.append(line)
+        if not found:
+            new_lines.append(f"AUTH_MODE={new_mode}")
+        new_content = "\n".join(new_lines) + "\n"
+        import base64 as b64mod
+        encoded = b64mod.b64encode(new_content.encode()).decode()
+        updater.exec_run(["sh", "-c", f"echo '{encoded}' | base64 -d > '{env_path}'"])
+        container = client.containers.get("annoncesgen-backend-1")
+        container.restart(timeout=10)
+        _cache.pop("stats_annoncesgen", None)
+        return jsonify({"ok": True, "auth_mode": new_mode})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 # --- Stats routes ---
 
 @app.route("/api/stats/videodl")
@@ -635,6 +669,22 @@ def api_stats_storyboard():
     except Exception:
         pass
     set_cache("stats_storyboard", data)
+    return jsonify(data)
+
+
+@app.route("/api/stats/annoncesgen")
+@login_required
+def api_stats_annoncesgen():
+    c = cached("stats_annoncesgen")
+    if c:
+        return jsonify(c)
+    data = {}
+    try:
+        auth_mode = read_env_var(ANNONCESGEN_ENV, "AUTH_MODE") or "accounts"
+        data["auth_mode"] = auth_mode
+    except Exception:
+        pass
+    set_cache("stats_annoncesgen", data)
     return jsonify(data)
 
 
