@@ -97,6 +97,8 @@ STORYBOARD_URL = "http://192.168.0.30:3232"
 STORYBOARD_ENV = "/home/sylvain/Téléchargements/SOFT/StoryboardGenerator/.env"
 VOICEBOX_URL = "http://192.168.0.30:17493"
 VOICEBOX_ENV = "/home/sylvain/Téléchargements/SOFT/Voicebox-fork/.env"
+ANNONCESGEN_URL = "http://192.168.0.30:3333"
+ANNONCESGEN_ENV = "/home/sylvain/Téléchargements/SOFT/AnnoncesGen/.env"
 DOWNLOADS_PATH = "/home/sylvain/Téléchargements/SOFT/VideoDL/web/downloads"
 
 
@@ -464,6 +466,31 @@ def api_storyboard_admin_token():
             )
         data = r.json()
         return jsonify({"ok": True, "token": data.get("token")})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/annoncesgen-admin-token")
+@login_required
+def api_annoncesgen_admin_token():
+    try:
+        admin_email = read_env_var(ANNONCESGEN_ENV, "ADMIN_EMAIL")
+        admin_pwd = read_env_var(ANNONCESGEN_ENV, "ADMIN_PASSWORD")
+        if not admin_email or not admin_pwd:
+            return jsonify({"ok": False, "error": "ADMIN_EMAIL/ADMIN_PASSWORD non trouvé dans .env"}), 500
+        r = http_requests.post(
+            f"{ANNONCESGEN_URL}/api/auth/login",
+            json={"email": admin_email, "password": admin_pwd},
+            timeout=5
+        )
+        if r.status_code != 200:
+            return jsonify({"ok": False, "error": f"Login échoué ({r.status_code})"}), 500
+        data = r.json()
+        return jsonify({
+            "ok": True,
+            "access_token": data.get("access_token"),
+            "refresh_token": data.get("refresh_token"),
+        })
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 

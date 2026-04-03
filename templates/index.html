@@ -456,7 +456,7 @@ function renderCard(c) {
     actions.push(`<button class="btn btn-link" onclick="openStoryboardAdmin(this)">Admin</button>`);
   }
   if (c.name === "annoncesgen-backend-1" && running) {
-    actions.push(`<a class="btn btn-link" href="${c.url}/admin" target="_blank">Admin</a>`);
+    actions.push(`<button class="btn btn-link" onclick="openAnnoncesGenAdmin(this)">Admin</button>`);
   }
   if (running) {
     actions.push(`<button class="btn btn-restart" onclick="doAction('${c.name}','restart',this)">Restart</button>`);
@@ -586,6 +586,21 @@ async function openStoryboardAdmin(btn) {
     const data = await r.json();
     if (data.ok && data.token) {
       window.open("http://storyboardgen.duckdns.org/api/auth/auto-login?token=" + encodeURIComponent(data.token) + "&redirect=/admin.html", "_blank");
+    } else { alert("Erreur login admin: " + (data.error || "")); }
+  } catch(e) { alert("Erreur: " + e); }
+  btn.disabled = false;
+  btn.innerHTML = "Admin";
+}
+
+async function openAnnoncesGenAdmin(btn) {
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span>`;
+  try {
+    const r = await fetch("/api/annoncesgen-admin-token");
+    const data = await r.json();
+    if (data.ok && data.access_token) {
+      const url = "http://192.168.0.30:3333/auto-login?access_token=" + encodeURIComponent(data.access_token) + "&refresh_token=" + encodeURIComponent(data.refresh_token) + "&redirect=/admin";
+      window.open(url, "_blank");
     } else { alert("Erreur login admin: " + (data.error || "")); }
   } catch(e) { alert("Erreur: " + e); }
   btn.disabled = false;
