@@ -455,6 +455,9 @@ function renderCard(c) {
   if (c.name === "storyboardgenerator-app-1" && running) {
     actions.push(`<button class="btn btn-link" onclick="openStoryboardAdmin(this)">Admin</button>`);
   }
+  if (c.name === "annoncesgen-backend-1" && running) {
+    actions.push(`<a class="btn btn-link" href="${c.url}/admin" target="_blank">Admin</a>`);
+  }
   if (running) {
     actions.push(`<button class="btn btn-restart" onclick="doAction('${c.name}','restart',this)">Restart</button>`);
     actions.push(`<button class="btn btn-stop" onclick="doAction('${c.name}','stop',this)">Stop</button>`);
