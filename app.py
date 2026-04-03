@@ -18,7 +18,14 @@ _cache = {}
 CACHE_TTL = 30
 VERSION_TTL = 120
 
-HIDDEN = {"minix-dashboard", "storyboardgenerator-nginx-1"}
+HIDDEN = {
+    "minix-dashboard",
+    "storyboardgenerator-nginx-1",
+    "annoncesgen-frontend-1",
+    "annoncesgen-nginx-1",
+    "annoncesgen-db-1",
+    "annoncesgen-ollama-1",
+}
 
 SERVICE_URLS = {
     "homeassistant": "http://192.168.0.30:8123",
@@ -28,6 +35,7 @@ SERVICE_URLS = {
     "frigate": "http://192.168.0.30:5000",
     "portainer": "https://192.168.0.30:9443",
     "storyboardgenerator-app-1": "http://192.168.0.30:3232",
+    "annoncesgen-backend-1": "http://192.168.0.30:3333",
 }
 
 FRIENDLY_NAMES = {
@@ -40,15 +48,17 @@ FRIENDLY_NAMES = {
     "portainer": "Portainer",
     "docker-updater": "Docker Updater",
     "storyboardgenerator-app-1": "Storyboard Generator",
+    "annoncesgen-backend-1": "AnnoncesGen",
 }
 
-UPDATABLE = {"voicebox", "web-video-downloader-1", "storyboardgenerator-app-1"}
-SHOW_LOGS = {"voicebox", "web-video-downloader-1", "storyboardgenerator-app-1"}
+UPDATABLE = {"voicebox", "web-video-downloader-1", "storyboardgenerator-app-1", "annoncesgen-backend-1"}
+SHOW_LOGS = {"voicebox", "web-video-downloader-1", "storyboardgenerator-app-1", "annoncesgen-backend-1"}
 
 GIT_REPOS = {
     "voicebox": "/home/sylvain/Téléchargements/SOFT/Voicebox-fork",
     "web-video-downloader-1": "/home/sylvain/Téléchargements/SOFT/VideoDL/web",
     "storyboardgenerator-app-1": "/home/sylvain/Téléchargements/SOFT/StoryboardGenerator",
+    "annoncesgen-backend-1": "/home/sylvain/Téléchargements/SOFT/AnnoncesGen",
 }
 
 CATEGORIES = {
@@ -61,6 +71,7 @@ CATEGORIES = {
     "portainer": "system",
     "docker-updater": "system",
     "storyboardgenerator-app-1": "services",
+    "annoncesgen-backend-1": "services",
 }
 
 ENV_FILES = {
@@ -73,6 +84,9 @@ ENV_FILES = {
     ],
     "storyboardgenerator-app-1": [
         "/home/sylvain/Téléchargements/SOFT/StoryboardGenerator/.env",
+    ],
+    "annoncesgen-backend-1": [
+        "/home/sylvain/Téléchargements/SOFT/AnnoncesGen/.env",
     ],
 }
 
