@@ -3,5 +3,5 @@ WORKDIR /app
 RUN pip install --no-cache-dir flask docker requests
 COPY app.py .
 COPY templates/ templates/
-EXPOSE 5555
+EXPOSE 9090
 CMD ["python", "app.py"]
