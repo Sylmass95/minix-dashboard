@@ -148,6 +148,48 @@ def get_git_version(name):
     return None
 
 
+def get_docker_image_size(container_name):
+    try:
+        c = client.containers.get(container_name)
+        size_bytes = c.image.attrs.get("Size", 0)
+        if size_bytes >= 1_073_741_824:
+            return f"{size_bytes / 1_073_741_824:.1f} Go"
+        return f"{size_bytes / 1_048_576:.0f} Mo"
+    except Exception:
+        return "?"
+
+
+def count_docker_errors(container_name, tail=500):
+    try:
+        c = client.containers.get(container_name)
+        logs = c.logs(tail=tail, timestamps=False).decode("utf-8", errors="replace")
+        keywords = ["error", "exception", "traceback", "fatal"]
+        return sum(1 for line in logs.splitlines()
+                   if any(kw in line.lower() for kw in keywords))
+    except Exception:
+        return 0
+
+
+def check_gemini_quota(env_path):
+    try:
+        api_key = read_env_var(env_path, "GEMINI_API_KEY")
+        if not api_key:
+            return {"status": "no_key"}
+        r = http_requests.get(
+            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash?key={api_key}",
+            timeout=5
+        )
+        if r.status_code == 429:
+            return {"status": "exhausted", "key": True}
+        if r.status_code != 200:
+            return {"status": "error", "key": True}
+        remaining = r.headers.get("x-ratelimit-remaining-requests")
+        limit = r.headers.get("x-ratelimit-limit-requests")
+        return {"status": "ok", "key": True, "remaining": remaining, "limit": limit}
+    except Exception:
+        return {"status": "error"}
+
+
 def container_info(c):
     name = c.name
     category = CATEGORIES.get(name, "system")
@@ -640,6 +682,8 @@ def api_stats_voicebox():
     except Exception:
         pass
 
+    data["docker_size"] = get_docker_image_size("voicebox")
+    data["error_count"] = count_docker_errors("voicebox")
     set_cache("stats_voicebox", data)
     return jsonify(data)
 
@@ -668,6 +712,8 @@ def api_stats_storyboard():
             data["active_users"] = int(lines[2])
     except Exception:
         pass
+    data["docker_size"] = get_docker_image_size("storyboardgenerator-app-1")
+    data["gemini_quota"] = check_gemini_quota(STORYBOARD_ENV)
     set_cache("stats_storyboard", data)
     return jsonify(data)
 
@@ -684,6 +730,29 @@ def api_stats_annoncesgen():
         data["auth_mode"] = auth_mode
     except Exception:
         pass
+
+    try:
+        db = client.containers.get("annoncesgen-db-1")
+        sql = (
+            "SELECT "
+            "(SELECT COUNT(*) FROM users),"
+            "(SELECT COUNT(*) FROM users WHERE is_active = true "
+            "AND id IN (SELECT DISTINCT user_id FROM ad_history "
+            "WHERE created_at > NOW() - INTERVAL '1 day')),"
+            "(SELECT COUNT(*) FROM ad_history)"
+        )
+        r = db.exec_run(["psql", "-U", "postgres", "-d", "annoncesgen", "-t", "-c", sql])
+        parts = r.output.decode().strip().split("|")
+        if len(parts) >= 3:
+            data["users_total"] = int(parts[0].strip())
+            data["users_active"] = int(parts[1].strip())
+            data["generations"] = int(parts[2].strip())
+    except Exception:
+        pass
+
+    data["docker_size"] = get_docker_image_size("annoncesgen-backend-1")
+    data["error_count"] = count_docker_errors("annoncesgen-backend-1")
+    data["gemini_quota"] = check_gemini_quota(ANNONCESGEN_ENV)
     set_cache("stats_annoncesgen", data)
     return jsonify(data)
 
