@@ -287,9 +287,12 @@ def api_dashboard_version():
             headers={"Accept": "application/vnd.github.v3+json"},
             timeout=5
         ).json()
+        from datetime import datetime, timezone, timedelta
+        utc_date = datetime.strptime(gh["commit"]["committer"]["date"], "%Y-%m-%dT%H:%M:%SZ")
+        fr_date = utc_date.replace(tzinfo=timezone.utc).astimezone(timezone(timedelta(hours=2)))
         data = {
             "sha": gh["sha"][:7],
-            "date": gh["commit"]["committer"]["date"][:16].replace("T", " ")
+            "date": fr_date.strftime("%Y-%m-%d %H:%M")
         }
         set_cache("dashboard_version", data)
         return jsonify(data)
