@@ -841,14 +841,25 @@ def api_render_restart():
         return jsonify({"ok": True, "message": "Restart en cours..."})
 
 
-WOL_URL = "https://www.depicus.com/wake-on-lan/woli?m=0C9D9284CCC0&i=82.67.124.40&s=255.255.255.255&p=9"
+RENDER_MAC = "0C:9D:92:84:CC:C0"
+
+
+def send_wol(mac_address):
+    mac = mac_address.replace(":", "").replace("-", "")
+    if len(mac) != 12:
+        raise ValueError("Adresse MAC invalide")
+    magic = b'\xff' * 6 + bytes.fromhex(mac) * 16
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        s.sendto(magic, ("255.255.255.255", 9))
 
 
 @app.route("/api/render/wol", methods=["POST"])
 @login_required
 def api_render_wol():
     try:
-        http_requests.get(WOL_URL, timeout=10)
+        send_wol(RENDER_MAC)
         return jsonify({"ok": True, "message": "Magic packet envoyé"})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
