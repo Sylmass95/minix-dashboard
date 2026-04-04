@@ -3,8 +3,7 @@ services:
     build: .
     container_name: minix-dashboard
     restart: always
-    ports:
-      - "9090:5555"
+    network_mode: host
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
