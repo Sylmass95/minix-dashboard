@@ -217,6 +217,7 @@
   <div class="header-actions">
     <button class="btn btn-update" onclick="runUpdate()" id="updateBtn">Mise à jour apps</button>
     <a class="btn btn-portainer" href="https://192.168.0.30:9443" target="_blank">Portainer</a>
+    <a class="btn btn-portainer" href="http://192.168.0.30:3100" target="_blank" style="background:#7c3aed">Umami Stats</a>
     <button class="btn btn-theme" onclick="toggleTheme()" id="themeBtn" title="Changer le thème"></button>
   </div>
 </header>
@@ -371,19 +372,39 @@ function renderStats(name) {
       <span class="stat-label">Générations totales</span><span class="stat-value">${s.generations??"-"}</span>
       <span class="stat-label">Rendus en cours</span><span class="stat-value">${s.active_generations??0}</span>
       <span class="stat-label">Rendu sur</span><span class="stat-value">${device} (${machine}) — ${s.model_size||"?"}</span>
+      <span class="stat-label">Taille Docker</span><span class="stat-value">${s.docker_size||"?"}</span>
+      <span class="stat-label">Erreurs (500 derniers logs)</span><span class="stat-value">${s.error_count??0}</span>
     </div>`;
   }
   if (name === "storyboardgenerator-app-1") {
     const userStr = s.active_users != null ? `${s.active_users} actif(s) / ${s.users??0} total` : `${s.users??0} total`;
+    const gemini = s.gemini_quota || {};
+    const quotaStr = gemini.status === "ok" && gemini.remaining != null
+      ? `${gemini.remaining} / ${gemini.limit} restants`
+      : gemini.status === "exhausted" ? "Épuisé !" : gemini.key ? "OK" : "Non configuré";
     return `<div class="card-stats">
       <span class="stat-label">Utilisateurs</span><span class="stat-value">${userStr}</span>
       <span class="stat-label">Projets</span><span class="stat-value">${s.projects??0}</span>
+      <span class="stat-label">Taille Docker</span><span class="stat-value">${s.docker_size||"?"}</span>
+      <span class="stat-label">Quota Gemini</span><span class="stat-value">${quotaStr}</span>
     </div>`;
   }
   if (name === "annoncesgen-backend-1") {
     const mode = s.auth_mode || "accounts";
+    const userStr = s.users_active != null
+      ? `${s.users_active} actif(s) / ${s.users_total??0} total`
+      : s.users_total != null ? `${s.users_total} total` : "-";
+    const gemini = s.gemini_quota || {};
+    const quotaStr = gemini.status === "ok" && gemini.remaining != null
+      ? `${gemini.remaining} / ${gemini.limit} restants`
+      : gemini.status === "exhausted" ? "Épuisé !" : gemini.key ? "OK" : "Non configuré";
     return `<div class="card-stats">
       <span class="stat-label">Auth mode</span><span class="stat-value">${mode === "accounts" ? "Comptes (login)" : "Ouvert (sans login)"}</span>
+      <span class="stat-label">Utilisateurs</span><span class="stat-value">${userStr}</span>
+      <span class="stat-label">Générations</span><span class="stat-value">${s.generations??0}</span>
+      <span class="stat-label">Taille Docker</span><span class="stat-value">${s.docker_size||"?"}</span>
+      <span class="stat-label">Quota Gemini</span><span class="stat-value">${quotaStr}</span>
+      <span class="stat-label">Erreurs (500 derniers logs)</span><span class="stat-value">${s.error_count??0}</span>
     </div>`;
   }
   return "";
