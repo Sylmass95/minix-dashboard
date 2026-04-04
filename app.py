@@ -754,6 +754,7 @@ def api_render_logs():
 def api_render_sleep_pause():
     try:
         r = http_requests.post(f"{RENDER_URL}/system/sleep-pause", timeout=5)
+        _cache.pop("stats_render", None)
         return jsonify(r.json())
     except Exception as e:
         return jsonify({"error": str(e)}), 502
@@ -764,8 +765,10 @@ def api_render_sleep_pause():
 def api_render_restart():
     try:
         r = http_requests.post(f"{RENDER_URL}/system/restart", timeout=5)
+        _cache.pop("stats_render", None)
         return jsonify(r.json())
     except Exception:
+        _cache.pop("stats_render", None)
         return jsonify({"ok": True, "message": "Restart en cours..."})
 
 
