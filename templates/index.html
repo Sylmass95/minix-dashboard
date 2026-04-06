@@ -581,14 +581,21 @@ async function refresh() {
 }
 
 async function toggleEngine(name, action, el) {
+  console.log("toggleEngine", name, action);
   const prev = el.textContent;
   el.innerHTML = `<span class="spinner"></span>`;
   el.style.pointerEvents = "none";
   try {
     const r = await fetch(`/api/render/engines/${name}/${action}`, {method:"POST"});
+    console.log("toggleEngine response status:", r.status);
     const j = await r.json();
+    console.log("toggleEngine response:", j);
     if (j.error) alert(j.error);
-  } catch(e) { alert("Erreur : " + e.message); }
+    else if (!r.ok) alert("Erreur " + r.status + ": " + JSON.stringify(j));
+  } catch(e) {
+    console.error("toggleEngine error:", e);
+    alert("Erreur : " + e.message);
+  }
   el.innerHTML = prev;
   el.style.pointerEvents = "";
   refresh();
