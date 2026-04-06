@@ -609,7 +609,12 @@ async function toggleEngine(name, action, el) {
     } else {
       el.innerHTML = prev; el.style.pointerEvents = "";
       const evictNames = check.evict_suggestion.join(", ");
-      const msg = `Charger ${name} (~${check.estimated_gb} Go)\n\nVRAM libre : ${check.vram_free_gb} / ${check.vram_total_gb} Go\n\nIl faut décharger : ${evictNames}\n\nContinuer ?`;
+      let msg;
+      if (evictNames) {
+        msg = `Charger ${name} (~${check.estimated_gb} Go)\n\nVRAM libre : ${check.vram_free_gb} / ${check.vram_total_gb} Go\n\nIl faut décharger : ${evictNames}\n\nContinuer ?`;
+      } else {
+        msg = `Charger ${name} (~${check.estimated_gb} Go)\n\nVRAM libre : ${check.vram_free_gb} / ${check.vram_total_gb} Go\n\nPas assez de VRAM (mémoire résiduelle GPU).\nTenter quand même ?`;
+      }
       if (confirm(msg)) {
         el.innerHTML = `<span class="spinner"></span>`;
         el.style.pointerEvents = "none";
