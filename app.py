@@ -839,7 +839,7 @@ def api_stats_annoncesgen():
 @app.route("/api/stats/render")
 @login_required
 def api_stats_render():
-    c = cached("stats_render", 15)
+    c = cached("stats_render", 5)
     if c:
         return jsonify(c)
     data = {"online": False}

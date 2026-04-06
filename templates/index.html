@@ -589,7 +589,7 @@ async function refresh() {
 }
 
 function pauseAutoRefresh() { clearInterval(refreshTimer); }
-function resumeAutoRefresh() { refreshTimer = setInterval(refresh, 10000); }
+function resumeAutoRefresh() { refreshTimer = setInterval(refresh, 5000); }
 
 async function toggleEngine(name, action, el) {
   if (action === "unload") {
@@ -943,7 +943,7 @@ async function runUpdate() {
 function closeUpdate() { document.getElementById("updateOverlay").classList.remove("open"); }
 
 refresh();
-refreshTimer = setInterval(refresh, 10000);
+refreshTimer = setInterval(refresh, 5000);
 
 document.addEventListener("click", function(e) {
   const tag = e.target.closest(".engine-tag[data-engine]");
