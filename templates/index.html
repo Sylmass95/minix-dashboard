@@ -438,7 +438,7 @@ function renderRenderCard() {
       const isActive = e in loaded;
       const action = isActive ? "unload" : "load";
       const title = isActive ? "Cliquer pour décharger" : "Cliquer pour charger";
-      return `<span class="engine-tag ${isActive?"active":"inactive"}" title="${title}" onclick="toggleEngine('${e}','${action}',this)">${e}</span>`;
+      return `<span class="engine-tag ${isActive?"active":"inactive"}" title="${title}" data-engine="${e}" data-action="${action}">${e}</span>`;
     }).join("");
   }
   let gpuInfo = "";
@@ -878,6 +878,12 @@ function closeUpdate() { document.getElementById("updateOverlay").classList.remo
 
 refresh();
 refreshTimer = setInterval(refresh, 10000);
+
+document.addEventListener("click", function(e) {
+  const tag = e.target.closest(".engine-tag[data-engine]");
+  if (!tag) return;
+  toggleEngine(tag.dataset.engine, tag.dataset.action, tag);
+});
 
 (async function loadDashboardVersion() {
   try {
