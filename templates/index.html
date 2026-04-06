@@ -588,18 +588,22 @@ async function refresh() {
   await loadContainers();
 }
 
+function pauseAutoRefresh() { clearInterval(refreshTimer); }
+function resumeAutoRefresh() { refreshTimer = setInterval(refresh, 10000); }
+
 async function toggleEngine(name, action, el) {
   if (action === "unload") {
     if (!confirm(`Décharger ${name} ?`)) return;
     await doEngineAction(name, "unload", null, el);
     return;
   }
+  pauseAutoRefresh();
   const prev = el.textContent;
   el.innerHTML = `<span class="spinner"></span>`;
   el.style.pointerEvents = "none";
   try {
     const check = await fetch(`/api/render/engines/${name}/vram-check`).then(r=>r.json());
-    if (check.error) { alert(check.error); el.innerHTML = prev; el.style.pointerEvents = ""; return; }
+    if (check.error) { alert(check.error); el.innerHTML = prev; el.style.pointerEvents = ""; resumeAutoRefresh(); return; }
     if (check.fits) {
       await doEngineAction(name, "load", null, el);
     } else {
@@ -610,15 +614,19 @@ async function toggleEngine(name, action, el) {
         el.innerHTML = `<span class="spinner"></span>`;
         el.style.pointerEvents = "none";
         await doEngineAction(name, "load", check.evict_suggestion, el);
+      } else {
+        resumeAutoRefresh();
       }
     }
   } catch(e) {
     alert("Erreur : " + e.message);
     el.innerHTML = prev; el.style.pointerEvents = "";
+    resumeAutoRefresh();
   }
 }
 
 async function doEngineAction(name, action, evict, el) {
+  pauseAutoRefresh();
   const prev = el.textContent;
   if (!el.querySelector(".spinner")) {
     el.innerHTML = `<span class="spinner"></span>`;
@@ -637,6 +645,7 @@ async function doEngineAction(name, action, evict, el) {
     alert("Erreur : " + e.message);
   }
   await refreshRenderCard();
+  resumeAutoRefresh();
 }
 
 async function refreshRenderCard() {
