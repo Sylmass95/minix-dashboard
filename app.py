@@ -92,6 +92,7 @@ ENV_FILES = {
 }
 
 RENDER_URL = "http://192.168.0.82:17494"
+RENDER_TOKEN = os.environ.get("GPU_WORKER_TOKEN", "")
 VIDEODL_URL = "http://192.168.0.30:8742"
 VIDEODL_ENV = "/home/sylvain/Téléchargements/SOFT/VideoDL/web/.env"
 STORYBOARD_URL = "http://192.168.0.30:3232"
@@ -900,7 +901,8 @@ def api_render_logs():
 @login_required
 def api_render_engine_load(name):
     try:
-        r = http_requests.post(f"{RENDER_URL}/engines/{name}/load", timeout=30)
+        h = {"Authorization": f"Bearer {RENDER_TOKEN}"} if RENDER_TOKEN else {}
+        r = http_requests.post(f"{RENDER_URL}/engines/{name}/load", headers=h, timeout=30)
         _cache.pop("stats_render", None)
         return jsonify(r.json())
     except Exception as e:
@@ -911,7 +913,8 @@ def api_render_engine_load(name):
 @login_required
 def api_render_engine_unload(name):
     try:
-        r = http_requests.post(f"{RENDER_URL}/engines/{name}/unload", timeout=10)
+        h = {"Authorization": f"Bearer {RENDER_TOKEN}"} if RENDER_TOKEN else {}
+        r = http_requests.post(f"{RENDER_URL}/engines/{name}/unload", headers=h, timeout=10)
         _cache.pop("stats_render", None)
         return jsonify(r.json())
     except Exception as e:
