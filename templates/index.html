@@ -112,8 +112,16 @@
     display: inline-block; padding: .15rem .45rem; border-radius: 4px;
     font-size: .7rem; margin: .1rem; font-family: "SF Mono","Fira Code",monospace;
   }
-  .engine-tag.active { background: #238636; color: #fff; }
-  .engine-tag.inactive { background: var(--engine-inactive-bg); color: var(--engine-inactive-text); }
+  .engine-tag.active { background: #238636; color: #fff; cursor: pointer; }
+  .engine-tag.active:hover { opacity: .75; }
+  .engine-tag.inactive { background: var(--engine-inactive-bg); color: var(--engine-inactive-text); cursor: pointer; }
+  .engine-tag.inactive:hover { opacity: .75; }
+  .engine-tag .spinner { width: 10px; height: 10px; border-width: 1.5px; }
+  .vram-bar { width: 100%; height: 6px; border-radius: 3px; background: var(--engine-inactive-bg); overflow: hidden; margin-top: .3rem; }
+  .vram-bar-fill { height: 100%; border-radius: 3px; transition: width .3s; }
+  .vram-bar-fill.ok { background: var(--dot-green); }
+  .vram-bar-fill.warn { background: var(--dot-yellow); }
+  .vram-bar-fill.critical { background: var(--dot-red); }
   .card-mini-logs {
     background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px;
     padding: .5rem .7rem; display: flex; flex-direction: column; justify-content: flex-end;
@@ -428,13 +436,21 @@ function renderRenderCard() {
     const keys = Array.isArray(s.supported_engines) ? s.supported_engines : Object.keys(s.supported_engines);
     engines = keys.map(e => {
       const isActive = e in loaded;
-      return `<span class="engine-tag ${isActive?"active":"inactive"}">${e}</span>`;
+      const action = isActive ? "unload" : "load";
+      const title = isActive ? "Cliquer pour décharger" : "Cliquer pour charger";
+      return `<span class="engine-tag ${isActive?"active":"inactive"}" title="${title}" onclick="toggleEngine('${e}','${action}',this)">${e}</span>`;
     }).join("");
   }
   let gpuInfo = "";
+  let vramBar = "";
   if (s.online && s.gpu_name) {
+    const used = parseFloat(s.vram_used) || 0;
+    const total = parseFloat(s.vram_total) || 1;
+    const pct = Math.min(100, Math.round(used / total * 100));
+    const lvl = pct > 90 ? "critical" : pct > 70 ? "warn" : "ok";
     gpuInfo = `<span class="stat-label">GPU</span><span class="stat-value">${s.gpu_name}</span>
-      <span class="stat-label">VRAM</span><span class="stat-value">${s.vram_used||0} / ${s.vram_total||0} Go</span>`;
+      <span class="stat-label">VRAM</span><span class="stat-value">${used} / ${total} Go (${pct}%)</span>`;
+    vramBar = `<div class="vram-bar"><div class="vram-bar-fill ${lvl}" style="width:${pct}%"></div></div>`;
   }
   const paused = !!s.sleep_paused;
   const sleepRemain = s.sleep_remaining_min;
@@ -465,6 +481,7 @@ function renderRenderCard() {
       <span class="stat-label">Hostname</span><span class="stat-value">${s.hostname||"-"}</span>
       ${gpuInfo}
       ${engines ? `<span class="stat-full" style="margin-top:.3rem">Engines : ${engines}</span>` : ""}
+      ${vramBar ? `<span class="stat-full">${vramBar}</span>` : ""}
     </div>
     ${miniLogs}
     <div class="card-actions">${actions.join("")}</div>
@@ -561,6 +578,20 @@ async function loadContainers() {
 async function refresh() {
   await loadStats();
   await loadContainers();
+}
+
+async function toggleEngine(name, action, el) {
+  const prev = el.textContent;
+  el.innerHTML = `<span class="spinner"></span>`;
+  el.style.pointerEvents = "none";
+  try {
+    const r = await fetch(`/api/render/engines/${name}/${action}`, {method:"POST"});
+    const j = await r.json();
+    if (j.error) alert(j.error);
+  } catch(e) { alert("Erreur : " + e.message); }
+  el.innerHTML = prev;
+  el.style.pointerEvents = "";
+  refreshAll();
 }
 
 async function toggleSleepPause(btn) {

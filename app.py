@@ -896,6 +896,28 @@ def api_render_logs():
         return jsonify({"ok": False, "error": str(e)}), 502
 
 
+@app.route("/api/render/engines/<name>/load", methods=["POST"])
+@login_required
+def api_render_engine_load(name):
+    try:
+        r = http_requests.post(f"{RENDER_URL}/engines/{name}/load", timeout=30)
+        _cache.pop("stats_render", None)
+        return jsonify(r.json())
+    except Exception as e:
+        return jsonify({"error": str(e)}), 502
+
+
+@app.route("/api/render/engines/<name>/unload", methods=["POST"])
+@login_required
+def api_render_engine_unload(name):
+    try:
+        r = http_requests.post(f"{RENDER_URL}/engines/{name}/unload", timeout=10)
+        _cache.pop("stats_render", None)
+        return jsonify(r.json())
+    except Exception as e:
+        return jsonify({"error": str(e)}), 502
+
+
 @app.route("/api/render/sleep-pause", methods=["POST"])
 @login_required
 def api_render_sleep_pause():
