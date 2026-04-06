@@ -599,7 +599,7 @@ async function toggleEngine(name, action, el) {
   }
   pauseAutoRefresh();
   const prev = el.textContent;
-  el.innerHTML = `<span class="spinner"></span>`;
+  el.innerHTML = `${prev} <span class="spinner"></span>`;
   el.style.pointerEvents = "none";
   try {
     const check = await fetch(`/api/render/engines/${name}/vram-check`).then(r=>r.json());
@@ -616,8 +616,6 @@ async function toggleEngine(name, action, el) {
         msg = `Charger ${name} (~${check.estimated_gb} Go)\n\nVRAM libre : ${check.vram_free_gb} / ${check.vram_total_gb} Go\n\nPas assez de VRAM (mémoire résiduelle GPU).\nTenter quand même ?`;
       }
       if (confirm(msg)) {
-        el.innerHTML = `<span class="spinner"></span>`;
-        el.style.pointerEvents = "none";
         await doEngineAction(name, "load", check.evict_suggestion, el);
       } else {
         resumeAutoRefresh();
@@ -633,10 +631,8 @@ async function toggleEngine(name, action, el) {
 async function doEngineAction(name, action, evict, el) {
   pauseAutoRefresh();
   const prev = el.textContent;
-  if (!el.querySelector(".spinner")) {
-    el.innerHTML = `<span class="spinner"></span>`;
-    el.style.pointerEvents = "none";
-  }
+  el.innerHTML = `${prev} <span class="spinner"></span>`;
+  el.style.pointerEvents = "none";
   try {
     const opts = {method: "POST"};
     if (action === "load" && evict) {
