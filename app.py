@@ -897,14 +897,28 @@ def api_render_logs():
         return jsonify({"ok": False, "error": str(e)}), 502
 
 
+@app.route("/api/render/engines/<name>/vram-check")
+@login_required
+def api_render_engine_vram_check(name):
+    try:
+        h = {"Authorization": f"Bearer {RENDER_TOKEN}"} if RENDER_TOKEN else {}
+        r = http_requests.get(f"{RENDER_URL}/engines/{name}/vram-check", headers=h, timeout=5)
+        return jsonify(r.json())
+    except Exception as e:
+        return jsonify({"error": str(e)}), 502
+
+
 @app.route("/api/render/engines/<name>/load", methods=["POST"])
 @login_required
 def api_render_engine_load(name):
     try:
         h = {"Authorization": f"Bearer {RENDER_TOKEN}"} if RENDER_TOKEN else {}
-        r = http_requests.post(f"{RENDER_URL}/engines/{name}/load", headers=h, timeout=30)
+        body = request.get_json(silent=True) or {}
+        r = http_requests.post(
+            f"{RENDER_URL}/engines/{name}/load", headers=h, json=body, timeout=60,
+        )
         _cache.pop("stats_render", None)
-        return jsonify(r.json())
+        return jsonify(r.json()), r.status_code
     except Exception as e:
         return jsonify({"error": str(e)}), 502
 
