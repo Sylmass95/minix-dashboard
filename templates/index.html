@@ -439,7 +439,7 @@ function renderRenderCard() {
     const gpuKeys = keys.filter(isGpu);
     const cpuKeys = keys.filter(e => !isGpu(e));
     const renderTag = e => {
-      const isActive = e in loaded;
+      const isActive = loaded[e] && loaded[e].loaded !== false;
       const action = isActive ? "unload" : "load";
       const title = isActive ? "Cliquer pour décharger" : "Cliquer pour charger";
       return `<span class="engine-tag ${isActive?"active":"inactive"}" title="${title}" data-engine="${e}" data-action="${action}">${e}</span>`;
