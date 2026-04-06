@@ -587,12 +587,19 @@ async function toggleEngine(name, action, el) {
   try {
     const r = await fetch(`/api/render/engines/${name}/${action}`, {method:"POST"});
     const j = await r.json();
-    if (j.error) alert(j.error);
-    else if (!r.ok) alert("Erreur " + r.status + ": " + JSON.stringify(j));
+    if (j.error || j.detail) { alert(j.error || j.detail); el.innerHTML = prev; el.style.pointerEvents = ""; return; }
+    if (!r.ok) { alert("Erreur " + r.status); el.innerHTML = prev; el.style.pointerEvents = ""; return; }
   } catch(e) {
-    alert("Erreur : " + e.message);
+    alert("Erreur : " + e.message); el.innerHTML = prev; el.style.pointerEvents = ""; return;
   }
-  await refresh();
+  const rnd = await fetch("/api/stats/render").then(r=>r.json()).catch(()=>null);
+  if (rnd) statsCache["render"] = rnd;
+  const oldCard = document.getElementById("renderCard");
+  if (oldCard) {
+    const tmp = document.createElement("div");
+    tmp.innerHTML = renderRenderCard();
+    if (tmp.firstChild) oldCard.replaceWith(tmp.firstChild);
+  }
 }
 
 async function toggleSleepPause(btn) {
