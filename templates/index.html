@@ -481,7 +481,7 @@ function renderCard(c) {
     actions.push(`<button class="btn btn-link" onclick="openVoiceboxAdmin(this)">Admin</button>`);
   }
   if (c.name === "web-video-downloader-1" && running) {
-    actions.push(`<button class="btn btn-link" onclick="openVideoDLAdmin(this)">Admin</button>`);
+    actions.push(`<a class="btn btn-link" href="https://videodl.duckdns.org/admin" target="_blank">Admin</a>`);
     const s = statsCache["web-video-downloader-1"];
     const authOn = s && s.auth_mode === "accounts";
     actions.push(`<button class="btn ${authOn ? "btn-start" : "btn-stop"}" onclick="toggleVideoDLAuth(this)">${authOn ? "Accounts ON" : "Accounts OFF"}</button>`);
