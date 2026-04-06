@@ -476,6 +476,10 @@ def api_update():
             workdir="/home/sylvain",
         )
         output = exec_result.output.decode("utf-8", errors="replace")
+        for name in UPDATABLE:
+            _cache.pop(f"git_{name}", None)
+            _cache.pop(f"remote_{name}", None)
+        _cache.pop("dashboard_version", None)
         return jsonify({
             "ok": exec_result.exit_code == 0,
             "stdout": output,
