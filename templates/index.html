@@ -127,6 +127,12 @@
   .card-mini-logs .log-warn { color: #fbbf24; }
   .card-mini-logs .log-info { color: #60a5fa; }
   .card-mini-logs .log-success { color: #34d399; }
+  .badge-update {
+    display: inline-block; font-size: .65rem; font-weight: 600;
+    background: #d29922; color: #fff; border-radius: 4px;
+    padding: .1rem .4rem; margin-left: .4rem; vertical-align: middle;
+    animation: pulse 2s infinite;
+  }
   .section-title {
     font-size: .85rem; color: var(--text-muted); text-transform: uppercase;
     letter-spacing: .08em; margin: 1.5rem 0 .75rem; font-weight: 600;
@@ -497,11 +503,14 @@ function renderCard(c) {
   const ver = c.version
     ? ` &middot; <span class="sha">${c.version.sha}</span> <span class="ver-date">${gitDateFR(c.version.date)}</span>`
     : "";
+  const updateBadge = c.update_available
+    ? `<span class="badge-update">MAJ dispo (${c.remote_version.sha})</span>`
+    : "";
   const miniLogs = c.mini_logs ? `<div class="card-mini-logs">${colorizeLogs(c.mini_logs)}</div>` : `<div class="card-mini-logs"></div>`;
   const stats = renderStats(c.name) || `<div class="card-stats"></div>`;
   return `<div class="card${c.category==='system'?' system':''}">
     <div class="card-header">
-      <span class="card-name"><span class="dot ${statusClass(c.status)}"></span>${c.display_name}</span>
+      <span class="card-name"><span class="dot ${statusClass(c.status)}"></span>${c.display_name}${updateBadge}</span>
     </div>
     <div class="card-status">${c.status}${c.health?' ('+c.health+')':''} &middot; up ${timeAgoFR(c.started_at)}${ver}</div>
     ${stats}

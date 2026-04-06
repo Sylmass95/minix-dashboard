@@ -1,4 +1,5 @@
 import os
+import re
 import time
 import secrets
 import requests as http_requests
@@ -100,6 +101,7 @@ VOICEBOX_ENV = "/home/sylvain/Téléchargements/SOFT/Voicebox-fork/.env"
 ANNONCESGEN_URL = "http://192.168.0.30:3333"
 ANNONCESGEN_ENV = "/home/sylvain/Téléchargements/SOFT/AnnoncesGen/.env"
 DOWNLOADS_PATH = "/home/sylvain/Téléchargements/SOFT/VideoDL/web/downloads"
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
 
 
 def read_env_var(env_path, var_name):
@@ -146,6 +148,65 @@ def get_git_version(name):
     except Exception:
         pass
     return None
+
+
+_repo_url_cache = {}
+
+def get_github_repo_url(name):
+    """Extract 'owner/repo' from git remote origin, cached indefinitely."""
+    if name in _repo_url_cache:
+        return _repo_url_cache[name]
+    repo = GIT_REPOS.get(name)
+    if not repo:
+        return None
+    try:
+        updater = client.containers.get("docker-updater")
+        result = updater.exec_run(["sh", "-c", f"git -C '{repo}' remote get-url origin"])
+        url = result.output.decode("utf-8", errors="replace").strip()
+        # SSH: git@github.com:owner/repo.git  |  HTTPS: https://github.com/owner/repo.git
+        m = re.search(r"github\.com[:/](.+?)(?:\.git)?$", url)
+        if m:
+            _repo_url_cache[name] = m.group(1)
+            return _repo_url_cache[name]
+    except Exception:
+        pass
+    return None
+
+
+def get_remote_version(name):
+    if not GITHUB_TOKEN:
+        return None
+    repo_slug = get_github_repo_url(name)
+    if not repo_slug:
+        return None
+    c = cached(f"remote_{name}", VERSION_TTL)
+    if c:
+        return c
+    try:
+        resp = http_requests.get(
+            f"https://api.github.com/repos/{repo_slug}/commits/main",
+            headers={
+                "Accept": "application/vnd.github.v3+json",
+                "Authorization": f"Bearer {GITHUB_TOKEN}",
+            },
+            timeout=5,
+        )
+        if resp.status_code != 200:
+            return None
+        gh = resp.json()
+        from datetime import datetime, timezone
+        utc_date = datetime.strptime(
+            gh["commit"]["committer"]["date"], "%Y-%m-%dT%H:%M:%SZ"
+        ).replace(tzinfo=timezone.utc)
+        local_date = utc_date.astimezone()
+        data = {
+            "sha": gh["sha"][:7],
+            "date": local_date.strftime("%Y-%m-%d %H:%M"),
+        }
+        set_cache(f"remote_{name}", data)
+        return data
+    except Exception:
+        return None
 
 
 def get_docker_image_size(container_name):
@@ -199,6 +260,11 @@ def container_info(c):
             logs = c.logs(tail=20, timestamps=False).decode("utf-8", errors="replace")
         except Exception:
             pass
+    local_ver = get_git_version(name)
+    remote_ver = get_remote_version(name) if name in UPDATABLE else None
+    update_available = False
+    if local_ver and remote_ver and local_ver.get("sha") and remote_ver.get("sha"):
+        update_available = local_ver["sha"] != remote_ver["sha"]
     return {
         "id": c.short_id,
         "name": name,
@@ -209,7 +275,9 @@ def container_info(c):
         "url": SERVICE_URLS.get(name),
         "updatable": name in UPDATABLE,
         "category": category,
-        "version": get_git_version(name),
+        "version": local_ver,
+        "remote_version": remote_ver,
+        "update_available": update_available,
         "mini_logs": logs,
         "has_env": name in ENV_FILES,
     }
@@ -282,9 +350,12 @@ def api_dashboard_version():
     if c:
         return jsonify(c)
     try:
+        headers = {"Accept": "application/vnd.github.v3+json"}
+        if GITHUB_TOKEN:
+            headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
         gh = http_requests.get(
             "https://api.github.com/repos/Sylmass95/minix-dashboard/commits/main",
-            headers={"Accept": "application/vnd.github.v3+json"},
+            headers=headers,
             timeout=5
         ).json()
         from datetime import datetime, timezone
