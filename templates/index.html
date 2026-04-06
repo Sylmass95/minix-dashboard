@@ -477,6 +477,7 @@ function renderRenderCard() {
     actions.push(`<button class="btn btn-logs" onclick="showRenderLogs()">Logs</button>`);
     actions.push(`<button class="btn btn-env" onclick="showRenderEnv()">.env</button>`);
     actions.push(`<button class="btn ${pauseClass}" onclick="toggleSleepPause(this)">${pauseIcon} ${pauseLabel}</button>`);
+    actions.push(`<button class="btn btn-stop" onclick="sleepRender(this)">💤 Veille</button>`);
   } else {
     actions.push(`<button class="btn btn-start" onclick="wolRender(this)">Allumer (WOL)</button>`);
   }
@@ -668,6 +669,16 @@ async function toggleSleepPause(btn) {
   } catch(e) {}
   await loadStats();
   await loadContainers();
+}
+
+async function sleepRender(btn) {
+  if (!confirm("Mettre le Render en veille maintenant ?")) return;
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span> Veille...`;
+  try {
+    await fetch("/api/render/sleep", {method:"POST"});
+  } catch(e) {}
+  await refreshRenderCard();
 }
 
 async function wolRender(btn) {
