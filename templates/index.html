@@ -943,6 +943,7 @@ async function runUpdate() {
     if (txt.includes("Dashboard") && txt.includes("rebuild")) txt += "\n\n⏳ Le dashboard redémarre, la page va se recharger...";
     document.getElementById("updateContent").innerHTML = colorizeLogs(txt);
     if (txt.includes("redémarre")) setTimeout(() => location.reload(), 15000);
+    else setTimeout(closeUpdate, 5000);
   } catch(e) {
     document.getElementById("updateContent").textContent = "Le dashboard redémarre... Rechargement dans 10s.";
     setTimeout(() => location.reload(), 10000);
