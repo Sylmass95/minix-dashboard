@@ -433,13 +433,21 @@ function renderRenderCard() {
   let engines = "";
   if (s.supported_engines) {
     const loaded = s.engines_loaded || {};
-    const keys = Array.isArray(s.supported_engines) ? s.supported_engines : Object.keys(s.supported_engines);
-    engines = keys.map(e => {
+    const se = s.supported_engines;
+    const keys = Array.isArray(se) ? se : Object.keys(se);
+    const isGpu = e => { const info = se[e]; return !info || typeof info === "string" ? !e.includes("cpu") && e !== "piper" : info.device === "gpu"; };
+    const gpuKeys = keys.filter(isGpu);
+    const cpuKeys = keys.filter(e => !isGpu(e));
+    const renderTag = e => {
       const isActive = e in loaded;
       const action = isActive ? "unload" : "load";
       const title = isActive ? "Cliquer pour décharger" : "Cliquer pour charger";
       return `<span class="engine-tag ${isActive?"active":"inactive"}" title="${title}" data-engine="${e}" data-action="${action}">${e}</span>`;
-    }).join("");
+    };
+    const gpuTags = gpuKeys.map(renderTag).join("");
+    const cpuTags = cpuKeys.map(renderTag).join("");
+    engines = gpuTags;
+    if (cpuTags) engines += `<span style="display:block;font-size:.6rem;color:var(--text-muted);margin-top:.3rem">CPU :</span>` + cpuTags;
   }
   let gpuInfo = "";
   let vramBar = "";
@@ -480,7 +488,7 @@ function renderRenderCard() {
     <div class="card-stats">
       <span class="stat-label">Hostname</span><span class="stat-value">${s.hostname||"-"}</span>
       ${gpuInfo}
-      ${engines ? `<span class="stat-full" style="margin-top:.3rem">Engines : ${engines}</span>` : ""}
+      ${engines ? `<span class="stat-full" style="margin-top:.3rem">Engines GPU : ${engines}</span>` : ""}
       ${vramBar ? `<span class="stat-full">${vramBar}</span>` : ""}
     </div>
     ${miniLogs}
